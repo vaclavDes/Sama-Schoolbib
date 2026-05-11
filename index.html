@@ -2349,7 +2349,59 @@ function controleerWachtwoord() {
 function openBeheer() {
   vraagWachtwoord('🔒 Beheer', 'Voer het wachtwoord in om het beheer te openen.', () => {
     showPage('beheer');
+    laadBeheerPrullenbak();
   });
+}
+
+async function laadBeheerPrullenbak() {
+  let items = [];
+  if (useFirebase) {
+    const snap = await db.collection('prullenbak').orderBy('verwijderdOp','desc').get();
+    items = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  } else {
+    items = JSON.parse(JSON.stringify(localPrullenbak));
+  }
+  renderBeheerPrullenbak(items);
+}
+
+function renderBeheerPrullenbak(items) {
+  const grid = document.getElementById('beheer-prullenbak-grid');
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--ink3)"><p>Prullenbak is leeg.</p></div>';
+    return;
+  }
+  grid.innerHTML = items.map(b => `
+    <div class="book-card">
+      <div class="book-cover">
+        ${b.coverUrl ? `<img src="${b.coverUrl}" alt="${b.titel}" onerror="this.style.display='none'">` : '📖'}
+      </div>
+      <div class="book-info">
+        <div class="book-title">${b.titel}</div>
+        <div class="book-author">${b.auteur||''}</div>
+        <div style="font-size:11px;color:var(--ink3);margin:4px 0">
+          ${b.verwijderdUit === 'bib' ? '🏫 Uit Schoolbib' : '⭐ Uit Favorieten'}<br>
+          ${new Date(b.verwijderdOp).toLocaleDateString('nl-BE')}
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn btn-primary btn-sm" onclick="herstelBoek('${b.id}')">↩ Herstellen</button>
+          <button class="btn btn-danger btn-sm" onclick="permanentVerwijderenBeheer('${b.id}','${b.titel.replace(/'/g,"\'")}')">🗑 Wis</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function permanentVerwijderenBeheer(id, titel) {
+  if (!confirm(`"${titel}" permanent verwijderen? Dit kan niet ongedaan gemaakt worden.`)) return;
+  if (useFirebase) {
+    await db.collection('prullenbak').doc(id).delete();
+  } else {
+    localPrullenbak = localPrullenbak.filter(b => b.id !== id);
+  }
+  showToast('Boek permanent verwijderd');
+  laadBeheerPrullenbak();
+  // Ook prullenbak pagina verversen
+  laadPrullenbak();
 }
 
 function openPrullenbak() {
@@ -2386,7 +2438,6 @@ function renderPrullenbak(items) {
         <div style="font-size:11px;color:var(--ink3);margin:4px 0">Verwijderd op ${new Date(b.verwijderdOp).toLocaleDateString('nl-BE')}</div>
         <div style="display:flex;gap:6px;margin-top:6px">
           <button class="btn btn-primary btn-sm" onclick="herstelBoek('${b.id}')">↩ Herstellen</button>
-          <button class="btn btn-danger btn-sm" onclick="permanentVerwijderen('${b.id}')">🗑 Wis</button>
         </div>
       </div>
     </div>
@@ -2415,17 +2466,7 @@ async function herstelBoek(id) {
   laadPrullenbak();
 }
 
-function permanentVerwijderen(id) {
-  vraagWachtwoord('🗑 Permanent verwijderen', 'Dit kan niet ongedaan gemaakt worden. Voer het wachtwoord in om te bevestigen.', async () => {
-    if (useFirebase) {
-      await db.collection('prullenbak').doc(id).delete();
-    } else {
-      localPrullenbak = localPrullenbak.filter(b => b.id !== id);
-    }
-    showToast('Boek permanent verwijderd');
-    laadPrullenbak();
-  });
-}
+
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
