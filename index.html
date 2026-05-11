@@ -509,10 +509,20 @@
 <div class="page" id="page-beheer">
 <div class="container">
   <div class="page-header">
-    <h2>Lijsten beheren</h2>
+    <h2>⚙️ Beheer</h2>
   </div>
-  <p style="color:var(--ink3);font-size:14px;margin-bottom:0.5rem">Hier kan je genres, types, thema's, AVI-niveaus, klassen en talen toevoegen of verwijderen. Alle leerkrachten zien deze aanpassingen meteen.</p>
-  <div class="beheer-grid" id="beheer-grid"></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="toonBeheerTab('lijsten')">📋 Lijsten beheren</button>
+    <button class="tab-btn" onclick="toonBeheerTab('prullenbak')">🗑 Prullenbak</button>
+  </div>
+  <div class="tab-content active" id="beheer-tab-lijsten">
+    <p style="color:var(--ink3);font-size:14px;margin-bottom:1rem">Voeg categorieën toe, hernoem of verwijder ze. Sleep items om de volgorde te wijzigen.</p>
+    <div class="beheer-grid" id="beheer-grid"></div>
+  </div>
+  <div class="tab-content" id="beheer-tab-prullenbak">
+    <p style="color:var(--ink3);font-size:14px;margin-bottom:1rem">Verwijderde boeken permanent wissen kan niet ongedaan gemaakt worden.</p>
+    <div class="book-grid" id="beheer-prullenbak-grid"></div>
+  </div>
 </div>
 </div>
 
