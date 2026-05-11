@@ -1,0 +1,2456 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schoolbib & Favorieten</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:#1a1209;--ink2:#5c4a2a;--ink3:#9c8060;
+    --paper:#faf7f2;--paper2:#f2ede3;--paper3:#e8e0d0;
+    --accent:#7a4f1e;--accent2:#c4873a;--accent3:#f0d9b5;
+    --green:#2d6a4f;--red:#9b2335;
+    --radius:10px;--radius-lg:16px;
+    --shadow:0 2px 12px rgba(26,18,9,0.08);
+    --shadow-lg:0 8px 32px rgba(26,18,9,0.14);
+    --font-title:'Fraunces',serif;
+    --font-body:'DM Sans',sans-serif;
+  }
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.6}
+  h1,h2,h3{font-family:var(--font-title);font-weight:600}
+
+  /* NAV */
+  nav{background:var(--ink);color:var(--paper);padding:0 2rem;display:flex;align-items:center;gap:1rem;height:56px;position:sticky;top:0;z-index:100}
+  nav .logo{font-family:var(--font-title);font-size:1.25rem;color:var(--accent3);flex:1}
+  nav button{background:none;border:1px solid rgba(255,255,255,0.2);color:var(--paper);padding:6px 14px;border-radius:var(--radius);cursor:pointer;font-family:var(--font-body);font-size:13px;transition:all .15s}
+  nav button:hover{background:rgba(255,255,255,0.1)}
+  nav button.active{background:var(--accent2);border-color:var(--accent2);color:var(--ink)}
+
+  /* LAYOUT */
+  .container{max-width:1200px;margin:0 auto;padding:2rem 1.5rem}
+  .page{display:none}.page.active{display:block}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius);border:none;cursor:pointer;font-family:var(--font-body);font-size:14px;font-weight:500;transition:all .15s}
+  .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#5c3a14}
+  .btn-secondary{background:var(--paper2);color:var(--ink);border:1px solid var(--paper3)}.btn-secondary:hover{background:var(--paper3)}
+  .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#7a1a28}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+
+  /* CARDS */
+  .book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1.25rem;margin-top:1.5rem}
+  .book-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s}
+  .book-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+  .book-cover{width:100%;height:220px;object-fit:cover;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-size:48px}
+  .book-cover img{width:100%;height:100%;object-fit:cover}
+  .book-info{padding:0.85rem}
+  .book-title{font-family:var(--font-title);font-size:1rem;color:var(--ink);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .book-author{font-size:12px;color:var(--ink3);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .book-tags{display:flex;flex-wrap:wrap;gap:4px}
+  .tag{font-size:11px;padding:2px 7px;border-radius:20px;background:var(--accent3);color:var(--accent)}
+  .tag.type{background:#e2d9f3;color:#4a1a8a}
+  .tag.thema{background:#fde8d0;color:#8a3a00}
+  .tag.klas{background:#cce5ff;color:#004085}
+  .tag.taal{background:#e8f4f8;color:#0c5460}
+  .tag.extra{background:#fce4ec;color:#880e4f}
+  .stars{color:var(--accent2);font-size:14px;margin-bottom:4px}
+
+  /* FILTERS */
+  .filter-bar{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.5rem}
+  .filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.75rem;margin-top:0.75rem}
+  .filter-bar h3{font-size:14px;color:var(--ink2);font-family:var(--font-body);font-weight:500}
+  .filter-dropdown{position:static}
+  .filter-btn{padding:8px 14px;border:1px solid var(--paper3);border-radius:20px;background:#fff;color:var(--ink);font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+  .filter-btn:hover{border-color:var(--accent2);background:var(--accent3)}
+  .filter-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
+  .filter-btn .badge{background:rgba(255,255,255,0.3);border-radius:20px;padding:1px 7px;font-size:11px}
+  .filter-btn.active .badge{background:rgba(255,255,255,0.35)}
+  .filter-panel{display:none;position:fixed;background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);z-index:200;padding:1rem;min-width:220px}
+  .filter-panel.open{display:block}
+  .filter-panel-inner{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:2px}
+  .filter-panel label{font-size:13px;font-weight:400;color:var(--ink);display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:6px;cursor:pointer;white-space:nowrap}
+  .filter-panel label:hover{background:var(--paper2)}
+  .filter-panel input[type=checkbox]{width:auto;padding:0;accent-color:var(--accent);flex-shrink:0}
+  .filter-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;padding-bottom:0.5rem;border-bottom:1px solid var(--paper3)}
+  .filter-panel-header span{font-size:12px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+  .filter-panel-header button{background:none;border:none;cursor:pointer;font-size:12px;color:var(--ink3);padding:2px 6px;border-radius:4px}
+  .filter-panel-header button:hover{background:var(--paper2);color:var(--ink)}
+  input[type=text],input[type=number],select,textarea{width:100%;padding:8px 12px;border:1px solid var(--paper3);border-radius:var(--radius);font-family:var(--font-body);font-size:14px;background:#fff;color:var(--ink);outline:none;transition:border-color .15s}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent2)}
+  label{font-size:13px;color:var(--ink2);display:block;margin-bottom:4px;font-weight:500}
+  textarea{resize:vertical;min-height:80px}
+
+  /* MODAL */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(26,18,9,0.55);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:var(--radius-lg);padding:2rem;width:100%;max-width:680px;margin:auto;box-shadow:var(--shadow-lg)}
+  .modal h2{font-size:1.4rem;margin-bottom:1.5rem;color:var(--ink)}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  .form-full{grid-column:1/-1}
+  .form-row{margin-bottom:0}
+
+  /* MULTI SELECT */
+  .multi-select{border:1px solid var(--paper3);border-radius:var(--radius);padding:8px;background:#fff;display:flex;flex-wrap:wrap;gap:4px}
+  .multi-select label{font-size:13px;font-weight:400;color:var(--ink);display:flex;align-items:center;gap:5px;padding:4px 10px;cursor:pointer;border:1px solid var(--paper3);border-radius:20px;transition:all .15s}
+  .multi-select label:hover{border-color:var(--accent2);background:var(--accent3)}
+  .multi-select label:has(input:checked){background:var(--accent);color:#fff;border-color:var(--accent)}
+  .multi-select input[type=checkbox]{display:none}
+
+  /* BEHEER */
+  .beheer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:1.5rem}
+  .beheer-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:1.25rem}
+  .beheer-card h3{font-family:var(--font-title);font-size:1.05rem;margin-bottom:1rem;color:var(--ink);border-bottom:1px solid var(--paper3);padding-bottom:0.5rem}
+  .beheer-item{display:flex;align-items:center;justify-content:space-between;padding:5px 4px;font-size:13px;border-bottom:1px solid var(--paper2);border-radius:6px;transition:background .1s}
+  .beheer-item:last-child{border-bottom:none}
+  .beheer-item.dragging{opacity:0.4;background:var(--accent3)}
+  .beheer-item.drag-over{background:var(--paper3);border-top:2px solid var(--accent2)}
+  .drag-handle{cursor:grab;color:var(--ink3);padding:0 6px;font-size:16px;user-select:none}
+  .drag-handle:active{cursor:grabbing}
+  .add-row{display:flex;gap:8px;margin-top:0.75rem}
+  .add-row input{flex:1}
+
+  /* DETAIL */
+  .detail-layout{display:grid;grid-template-columns:200px 1fr;gap:2rem;align-items:start}
+  .detail-cover{width:200px;height:280px;border-radius:var(--radius);overflow:hidden;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-size:64px;border:1px solid var(--paper3)}
+  .detail-cover img{width:100%;height:100%;object-fit:cover}
+  .detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem}
+  .detail-meta dt{font-size:12px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-top:0.75rem}
+  .detail-meta dd{font-size:14px;color:var(--ink);margin-top:2px}
+  .detail-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:2rem;right:2rem;background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:var(--radius);font-size:13px;z-index:999;transform:translateY(80px);opacity:0;transition:all .25s}
+  .toast.show{transform:translateY(0);opacity:1}
+
+  /* EMPTY */
+  .empty{text-align:center;padding:4rem 2rem;color:var(--ink3)}
+  .empty h3{font-family:var(--font-title);font-size:1.5rem;margin-bottom:0.5rem;color:var(--ink2)}
+
+  /* HEADER ROW */
+  .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+  .page-header h2{font-size:1.6rem;color:var(--ink)}
+
+  .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(max-width:640px){
+    .form-grid{grid-template-columns:1fr}
+    .detail-layout{grid-template-columns:1fr}
+    .detail-cover{width:100%;height:220px}
+    .filter-grid{grid-template-columns:1fr 1fr}
+  }
+  .isbn-row{display:flex;gap:8px}
+  .isbn-row input{flex:1}
+  #coverFileInput{display:none}
+  .cover-dropzone{border:2px dashed var(--paper3);border-radius:var(--radius-lg);background:var(--paper2);min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;padding:1rem}
+  .cover-dropzone:hover,.cover-dropzone.dragover{border-color:var(--accent2);background:var(--accent3)}
+  .cover-dropzone.has-cover .drop-icon,.cover-dropzone.has-cover .drop-label{display:none}
+  .cover-dropzone img.drop-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:calc(var(--radius-lg) - 2px);display:none;background:#fff}
+  .cover-dropzone.has-cover img.drop-img{display:block}
+  .cover-dropzone .drop-label{font-size:13px;color:var(--ink3);text-align:center;line-height:1.8}
+  .cover-dropzone .drop-icon{font-size:36px}
+  .cover-overlay{position:absolute;bottom:0;left:0;right:0;background:rgba(26,18,9,0.6);display:none;align-items:center;justify-content:center;gap:8px;padding:8px;border-radius:0 0 calc(var(--radius-lg) - 2px) calc(var(--radius-lg) - 2px)}
+  .cover-dropzone.has-cover:hover .cover-overlay{display:flex}
+  .cover-overlay button{background:rgba(255,255,255,0.9);border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--ink);font-weight:500}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">📚 Schoolbib & Favorieten</div>
+  <button onclick="showPage('bib')" id="nav-bib">🏫 Schoolbib</button>
+  <button onclick="showPage('catalogus')" id="nav-catalogus">⭐ Favorieten</button>
+  <button onclick="openPrullenbak()" id="nav-prullenbak">🗑 Prullenbak</button>
+  <button onclick="openBeheer()" id="nav-beheer">⚙️ Beheer</button>
+</nav>
+
+<!-- CATALOGUS PAGE -->
+<div class="page" id="page-catalogus">
+<div class="container">
+  <div class="page-header">
+    <h2>⭐ Favorieten</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="exportExcel()">⬇ Excel</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportPDF()">⬇ PDF</button>
+      <button class="btn btn-primary" onclick="openBoekModal()">+ Boek toevoegen</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <h3>🔍 Zoeken &amp; filteren</h3>
+    <div style="margin-top:0.75rem">
+      <input type="text" id="zoek" placeholder="Zoek op titel, auteur, ISBN..." oninput="filterBoeken()">
+    </div>
+    <div style="margin-top:0.75rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      
+      <div class="filter-dropdown"><button type="button" class="filter-btn" id="btn-f-type" onclick="toggleFilterPanel('f-type',this)">Type <span>▾</span></button><div class="filter-panel" id="f-type"><div class="filter-panel-header"><span>Type boek</span><button onclick="clearPanel('f-type')">Wis alles</button></div><div class="filter-panel-inner"></div></div></div>
+      <div class="filter-dropdown"><button type="button" class="filter-btn" id="btn-f-thema" onclick="toggleFilterPanel('f-thema',this)">Thema <span>▾</span></button><div class="filter-panel" id="f-thema"><div class="filter-panel-header"><span>Thema's</span><button onclick="clearPanel('f-thema')">Wis alles</button></div><div class="filter-panel-inner"></div></div></div>
+      <div class="filter-dropdown"><button type="button" class="filter-btn" id="btn-f-klas" onclick="toggleFilterPanel('f-klas',this)">Klas <span>▾</span></button><div class="filter-panel" id="f-klas"><div class="filter-panel-header"><span>Klassen</span><button onclick="clearPanel('f-klas')">Wis alles</button></div><div class="filter-panel-inner"></div></div></div>
+      <div class="filter-dropdown"><button type="button" class="filter-btn" id="btn-f-taal" onclick="toggleFilterPanel('f-taal',this)">Taal <span>▾</span></button><div class="filter-panel" id="f-taal"><div class="filter-panel-header"><span>Talen</span><button onclick="clearPanel('f-taal')">Wis alles</button></div><div class="filter-panel-inner"></div></div></div>
+      <div class="filter-dropdown"><button type="button" class="filter-btn" id="btn-f-leeftijd" onclick="toggleFilterPanel('f-leeftijd',this)">Leeftijd <span>▾</span></button><div class="filter-panel" id="f-leeftijd"><div class="filter-panel-header"><span>Leeftijd</span><button onclick="clearPanel('f-leeftijd')">Wis alles</button></div><div class="filter-panel-inner"><label><input type="checkbox" value="2" onchange="filterBoeken()"> 2 jaar</label><label><input type="checkbox" value="3" onchange="filterBoeken()"> 3 jaar</label><label><input type="checkbox" value="4" onchange="filterBoeken()"> 4 jaar</label><label><input type="checkbox" value="5" onchange="filterBoeken()"> 5 jaar</label><label><input type="checkbox" value="6" onchange="filterBoeken()"> 6 jaar</label><label><input type="checkbox" value="7" onchange="filterBoeken()"> 7 jaar</label><label><input type="checkbox" value="8" onchange="filterBoeken()"> 8 jaar</label><label><input type="checkbox" value="9" onchange="filterBoeken()"> 9 jaar</label><label><input type="checkbox" value="10" onchange="filterBoeken()"> 10 jaar</label><label><input type="checkbox" value="11" onchange="filterBoeken()"> 11 jaar</label><label><input type="checkbox" value="12" onchange="filterBoeken()"> 12 jaar</label><label><input type="checkbox" value="13" onchange="filterBoeken()"> 13 jaar</label><label><input type="checkbox" value="14" onchange="filterBoeken()"> 14 jaar</label></div></div></div>
+      <div class="filter-dropdown"><button type="button" class="filter-btn" id="btn-f-avi" onclick="toggleFilterPanel('f-avi',this)">AVI <span>▾</span></button><div class="filter-panel" id="f-avi"><div class="filter-panel-header"><span>AVI niveau</span><button onclick="clearPanel('f-avi')">Wis alles</button></div><div class="filter-panel-inner"></div></div></div>
+      <div class="filter-dropdown"><button type="button" class="filter-btn" id="btn-f-extra" onclick="toggleFilterPanel('f-extra',this)">Extra <span>▾</span></button><div class="filter-panel" id="f-extra"><div class="filter-panel-header"><span>Extra</span><button onclick="clearPanel('f-extra')">Wis alles</button></div><div class="filter-panel-inner"></div></div></div>
+      <div class="filter-dropdown"><button type="button" class="filter-btn" id="btn-f-sterren" onclick="toggleFilterPanel('f-sterren',this)">Sterren <span>▾</span></button><div class="filter-panel" id="f-sterren"><div class="filter-panel-header"><span>Beoordeling</span><button onclick="clearPanel('f-sterren')">Wis alles</button></div><div class="filter-panel-inner"><label><input type="checkbox" value="5" onchange="filterBoeken()"> ★★★★★</label><label><input type="checkbox" value="4" onchange="filterBoeken()"> ★★★★☆</label><label><input type="checkbox" value="3" onchange="filterBoeken()"> ★★★☆☆</label><label><input type="checkbox" value="2" onchange="filterBoeken()"> ★★☆☆☆</label><label><input type="checkbox" value="1" onchange="filterBoeken()"> ★☆☆☆☆</label></div></div></div>
+    </div>
+    <div style="margin-top:0.75rem;display:flex;align-items:center;flex-wrap:wrap;gap:0.75rem">
+      <button class="btn btn-secondary btn-sm" onclick="resetFilters()">✕ Filters wissen</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <label style="font-size:13px;color:var(--ink2);margin:0">Sorteren:</label>
+        <select id="sorteer" onchange="filterBoeken()" style="padding:5px 10px;font-size:13px;border:1px solid var(--paper3);border-radius:var(--radius);background:#fff;color:var(--ink);cursor:pointer">
+          <option value="nieuwst">Nieuwst eerst</option>
+          <option value="titel-az">Titel A → Z</option>
+          <option value="titel-za">Titel Z → A</option>
+          <option value="auteur-az">Schrijver A → Z</option>
+          <option value="auteur-za">Schrijver Z → A</option>
+        </select>
+      </div>
+      <span id="result-count" style="font-size:13px;color:var(--ink3)"></span>
+    </div>
+  </div>
+
+  <div class="book-grid" id="book-grid"></div>
+</div>
+</div>
+
+<!-- BIB PAGE -->
+<div class="page active" id="page-bib">
+<div class="container">
+  <div class="page-header">
+    <h2>🏫 Schoolbib</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="downloadBibTemplate()">⬇ Excel template</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('bibImportInput').click()">📥 Importeer Excel</button>
+      <input type="file" id="bibImportInput" accept=".xlsx,.xls" style="display:none" onchange="importeerBibExcel(event)">
+      <button class="btn btn-secondary btn-sm" onclick="exportBibExcel()">⬇ Exporteer Excel</button>
+      <button class="btn btn-primary" onclick="openBibBoekModal()">+ Boek toevoegen</button>
+    </div>
+  </div>
+
+  <!-- Filters Bib -->
+  <div class="filter-bar">
+    <h3>🔍 Zoeken &amp; filteren</h3>
+    <div style="margin-top:0.75rem">
+      <input type="text" id="bib-zoek" placeholder="Zoek op titel, auteur, ISBN..." oninput="filterBib()">
+    </div>
+    <div style="margin-top:0.75rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <div class="filter-dropdown">
+        <button type="button" class="filter-btn" id="btn-bib-type" onclick="toggleFilterPanel('bib-type',this)">Type <span>▾</span></button>
+        <div class="filter-panel" id="bib-type"><div class="filter-panel-header"><span>Type boek</span><button onclick="clearPanel('bib-type')">Wis alles</button></div><div class="filter-panel-inner"></div></div>
+      </div>
+      <div class="filter-dropdown">
+        <button type="button" class="filter-btn" id="btn-bib-thema" onclick="toggleFilterPanel('bib-thema',this)">Thema's <span>▾</span></button>
+        <div class="filter-panel" id="bib-thema"><div class="filter-panel-header"><span>Thema's</span><button onclick="clearPanel('bib-thema')">Wis alles</button></div><div class="filter-panel-inner"></div></div>
+      </div>
+      <div class="filter-dropdown">
+        <button type="button" class="filter-btn" id="btn-bib-locatie" onclick="toggleFilterPanel('bib-locatie',this)">Locatie <span>▾</span></button>
+        <div class="filter-panel" id="bib-locatie"><div class="filter-panel-header"><span>Locatie</span><button onclick="clearPanel('bib-locatie')">Wis alles</button></div><div class="filter-panel-inner"></div></div>
+      </div>
+      <div class="filter-dropdown">
+        <button type="button" class="filter-btn" id="btn-bib-taal" onclick="toggleFilterPanel('bib-taal',this)">Taal <span>▾</span></button>
+        <div class="filter-panel" id="bib-taal"><div class="filter-panel-header"><span>Taal</span><button onclick="clearPanel('bib-taal')">Wis alles</button></div><div class="filter-panel-inner"></div></div>
+      </div>
+      <div class="filter-dropdown">
+        <button type="button" class="filter-btn" id="btn-bib-leeftijd" onclick="toggleFilterPanel('bib-leeftijd',this)">Leeftijd <span>▾</span></button>
+        <div class="filter-panel" id="bib-leeftijd">
+          <div class="filter-panel-header"><span>Leeftijd</span><button onclick="clearPanel('bib-leeftijd')">Wis alles</button></div>
+          <div class="filter-panel-inner">
+            <label><input type="checkbox" value="2" onchange="filterBib()"> 2 jaar</label><label><input type="checkbox" value="3" onchange="filterBib()"> 3 jaar</label><label><input type="checkbox" value="4" onchange="filterBib()"> 4 jaar</label><label><input type="checkbox" value="5" onchange="filterBib()"> 5 jaar</label><label><input type="checkbox" value="6" onchange="filterBib()"> 6 jaar</label><label><input type="checkbox" value="7" onchange="filterBib()"> 7 jaar</label><label><input type="checkbox" value="8" onchange="filterBib()"> 8 jaar</label><label><input type="checkbox" value="9" onchange="filterBib()"> 9 jaar</label><label><input type="checkbox" value="10" onchange="filterBib()"> 10 jaar</label><label><input type="checkbox" value="11" onchange="filterBib()"> 11 jaar</label><label><input type="checkbox" value="12" onchange="filterBib()"> 12 jaar</label><label><input type="checkbox" value="13" onchange="filterBib()"> 13 jaar</label><label><input type="checkbox" value="14" onchange="filterBib()"> 14 jaar</label>
+          </div>
+        </div>
+      </div>
+      <div class="filter-dropdown">
+        <button type="button" class="filter-btn" id="btn-bib-avi" onclick="toggleFilterPanel('bib-avi',this)">AVI <span>▾</span></button>
+        <div class="filter-panel" id="bib-avi"><div class="filter-panel-header"><span>AVI niveau</span><button onclick="clearPanel('bib-avi')">Wis alles</button></div><div class="filter-panel-inner"></div></div>
+      </div>
+      <div class="filter-dropdown">
+        <button type="button" class="filter-btn" id="btn-bib-extra" onclick="toggleFilterPanel('bib-extra',this)">Extra <span>▾</span></button>
+        <div class="filter-panel" id="bib-extra"><div class="filter-panel-header"><span>Extra</span><button onclick="clearPanel('bib-extra')">Wis alles</button></div><div class="filter-panel-inner"></div></div>
+      </div>
+      <div class="filter-dropdown">
+        <button type="button" class="filter-btn" id="btn-bib-uitleen" onclick="toggleFilterPanel('bib-uitleen',this)">Status <span>▾</span></button>
+        <div class="filter-panel" id="bib-uitleen">
+          <div class="filter-panel-header"><span>Uitleen status</span><button onclick="clearPanel('bib-uitleen')">Wis alles</button></div>
+          <div class="filter-panel-inner">
+            <label><input type="checkbox" value="beschikbaar" onchange="filterBib()"> ✅ Beschikbaar</label>
+            <label><input type="checkbox" value="uitgeleend" onchange="filterBib()"> 📤 Uitgeleend</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="resetBibFilters()">✕ Filters wissen</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <label style="font-size:13px;color:var(--ink2);margin:0">Sorteren:</label>
+        <select id="bib-sorteer" onchange="filterBib()" style="padding:5px 10px;font-size:13px;border:1px solid var(--paper3);border-radius:var(--radius);background:#fff;color:var(--ink);cursor:pointer">
+          <option value="nieuwst">Nieuwst eerst</option>
+          <option value="titel-az">Titel A → Z</option>
+          <option value="titel-za">Titel Z → A</option>
+          <option value="auteur-az">Schrijver A → Z</option>
+          <option value="auteur-za">Schrijver Z → A</option>
+        </select>
+      </div>
+      <span id="bib-result-count" style="font-size:13px;color:var(--ink3)"></span>
+    </div>
+  </div>
+
+  <div class="book-grid" id="bib-grid"></div>
+</div>
+</div>
+
+<!-- BIB BOEK DETAIL MODAL -->
+<div class="modal-bg" id="modal-bib-detail">
+<div class="modal" style="max-width:740px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem">
+    <h2 id="bib-detail-titel" style="flex:1;margin-bottom:0"></h2>
+    <div style="display:flex;gap:8px;flex-shrink:0;margin-left:1rem">
+      <button class="btn btn-secondary btn-sm" onclick="voegToeAanCatalogus()">⭐ Naar favorieten</button>
+      <button class="btn btn-secondary btn-sm" onclick="bewerkBibBoek()">✏️ Bewerken</button>
+      <button class="btn btn-danger btn-sm" onclick="verwijderBibBoek()">🗑 Verwijderen</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-bib-detail')">✕</button>
+    </div>
+  </div>
+  <div class="detail-layout">
+    <div>
+      <div class="detail-cover" id="bib-detail-cover"></div>
+      <div id="uitleen-status-wrap" style="margin-top:1rem"></div>
+    </div>
+    <dl class="detail-meta" id="bib-detail-meta"></dl>
+  </div>
+  <div style="margin-top:1.5rem" id="bib-detail-locaties-wrap"></div>
+</div>
+</div>
+
+<!-- NAAR BIB MODAL -->
+<div class="modal-bg" id="modal-naar-bib">
+<div class="modal" style="max-width:420px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 style="margin:0">🏫 Toevoegen aan Bib</h2>
+    <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-naar-bib')">✕</button>
+  </div>
+  <p style="font-size:14px;color:var(--ink2);margin-bottom:1.25rem">Voeg <strong id="naar-bib-titel"></strong> toe aan de Schoolbib.</p>
+  <div style="margin-bottom:1rem">
+    <label>Aantal exemplaren</label>
+    <input type="number" id="naar-bib-aantal" min="1" value="1" placeholder="1">
+  </div>
+  <div style="margin-bottom:1.5rem">
+    <label>Locatie(s) op school</label>
+    <div class="multi-select" id="naar-bib-ms-locaties"></div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn btn-secondary" onclick="closeModal('modal-naar-bib')">Annuleren</button>
+    <button class="btn btn-primary" onclick="bevestigNaarBib()">🏫 Toevoegen</button>
+  </div>
+</div>
+</div>
+
+<!-- BIB UITLEEN MODAL -->
+<div class="modal-bg" id="modal-uitleen">
+<div class="modal" style="max-width:420px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 style="margin:0">📤 Boek uitlenen</h2>
+    <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-uitleen')">✕</button>
+  </div>
+  <p style="font-size:14px;color:var(--ink2);margin-bottom:1rem">Wie leent <strong id="uitleen-boek-titel"></strong>?</p>
+  <div style="margin-bottom:1rem">
+    <label>Naam lener</label>
+    <input type="text" id="uitleen-naam" placeholder="Naam van de lener...">
+  </div>
+  <div style="margin-bottom:1.5rem">
+    <label>Vanuit locatie</label>
+    <select id="uitleen-locatie"></select>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn btn-secondary" onclick="closeModal('modal-uitleen')">Annuleren</button>
+    <button class="btn btn-primary" onclick="bevestigUitleen()">📤 Uitlenen</button>
+  </div>
+</div>
+</div>
+
+<!-- BIB BOEK FORM MODAL -->
+<div class="modal-bg" id="modal-bib-form">
+<div class="modal">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 id="bib-form-title">Boek toevoegen aan Bib</h2>
+    <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-bib-form')">✕</button>
+  </div>
+  <form onsubmit="slaaBibBoekOp(event)">
+    <div class="form-grid">
+      <!-- COVER & ISBN -->
+      <div class="form-full">
+        <label>ISBN (haalt automatisch info op)</label>
+        <div class="isbn-row" style="margin-bottom:0.75rem">
+          <input type="text" id="bib-f-isbn" placeholder="bv. 9789021679976">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="haalBibCoverOp()">Boek ophalen</button>
+        </div>
+        <label>Cover</label>
+        <input type="file" id="bibCoverFileInput" accept="image/*" onchange="handleBibCoverUpload(event)" style="display:none">
+        <div class="cover-dropzone" id="bib-cover-dropzone"
+          onclick="handleBibDropzoneClick(event)"
+          ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)"
+          ondrop="handleBibDrop(event)">
+          <div class="drop-icon">🖼️</div>
+          <div class="drop-label">Sleep een afbeelding hierheen<br>of <strong>klik</strong> om te uploaden<br>of plak met <strong>Ctrl+V</strong></div>
+          <img class="drop-img" id="bib-cover-preview" alt="cover">
+          <div class="cover-overlay">
+            <button type="button" onclick="event.stopPropagation();verwijderBibCover()">🗑 Verwijder</button>
+            <button type="button" onclick="event.stopPropagation();document.getElementById('bibCoverFileInput').click()">📁 Vervang</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" style="margin-top:6px;width:100%" onclick="zoekBibOpGoogleImages()">🔍 Zoek cover op Google Images</button>
+      </div>
+      <div>
+        <label>Titel *</label>
+        <input type="text" id="bib-f-titel" required placeholder="Boektitel" oninput="checkBibDuplicaat()">
+        <div id="bib-duplicaat-waarschuwing" style="display:none;margin-top:8px;background:#fff8e1;border:1px solid #f0c040;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#7a5c00">
+          <strong>⚠️ Dit boek staat al ergens in de app!</strong><br>
+          <span id="bib-duplicaat-naam"></span><br>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="button" class="btn btn-primary btn-sm" onclick="bewerkBibDuplicaat()">✏️ Bewerk bestaand boek</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="negerBibDuplicaat()">Toch nieuw toevoegen</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label>Auteur *</label>
+        <input type="text" id="bib-f-auteur" required placeholder="Voornaam Achternaam">
+      </div>
+      <div>
+        <label>Uitgeverij</label>
+        <input type="text" id="bib-f-uitgeverij" placeholder="Naam uitgeverij">
+      </div>
+      <div>
+        <label>Taal</label>
+        <select id="bib-f-taal"></select>
+      </div>
+      <div>
+        <label>Aantal exemplaren</label>
+        <input type="number" id="bib-f-aantal" min="1" value="1" placeholder="1">
+      </div>
+      <div class="form-full">
+        <label>Type boek</label>
+        <div class="multi-select" id="bib-ms-types"></div>
+      </div>
+      <div class="form-full">
+        <label>Thema's</label>
+        <div class="multi-select" id="bib-ms-themas"></div>
+      </div>
+      <div class="form-full">
+        <label>Leeftijd</label>
+        <div class="multi-select" id="bib-ms-leeftijd">
+          <label><input type="checkbox" value="2"> 2 jaar</label><label><input type="checkbox" value="3"> 3 jaar</label><label><input type="checkbox" value="4"> 4 jaar</label><label><input type="checkbox" value="5"> 5 jaar</label><label><input type="checkbox" value="6"> 6 jaar</label><label><input type="checkbox" value="7"> 7 jaar</label><label><input type="checkbox" value="8"> 8 jaar</label><label><input type="checkbox" value="9"> 9 jaar</label><label><input type="checkbox" value="10"> 10 jaar</label><label><input type="checkbox" value="11"> 11 jaar</label><label><input type="checkbox" value="12"> 12 jaar</label><label><input type="checkbox" value="13"> 13 jaar</label><label><input type="checkbox" value="14"> 14 jaar</label>
+        </div>
+      </div>
+      <div>
+        <label>AVI niveau</label>
+        <select id="bib-f-avi"></select>
+      </div>
+      <div class="form-full">
+        <label>Extra (bv. Bekroond, Verfilmd...)</label>
+        <div class="multi-select" id="bib-ms-extra"></div>
+      </div>
+      <div class="form-full">
+        <label>Locatie(s) op school</label>
+        <div class="multi-select" id="bib-ms-locaties"></div>
+      </div>
+      <div class="form-full">
+        <label>Notities</label>
+        <textarea id="bib-f-notities" placeholder="Extra info..."></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1.5rem">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('modal-bib-form')">Annuleren</button>
+      <button type="submit" class="btn btn-primary" id="bib-submit-btn">💾 Opslaan</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- PRULLENBAK PAGE -->
+<!-- PRULLENBAK PAGE -->
+<div class="page" id="page-prullenbak">
+<div class="container">
+  <div class="page-header">
+    <h2>🗑 Prullenbak</h2>
+  </div>
+  <p style="color:var(--ink3);font-size:14px;margin-bottom:1.5rem">Verwijderde boeken staan hier. Iedereen kan boeken herstellen. Permanent verwijderen vereist een wachtwoord.</p>
+  <div class="book-grid" id="prullenbak-grid"></div>
+</div>
+</div>
+
+<!-- WACHTWOORD MODAL -->
+<div class="modal-bg" id="modal-wachtwoord">
+<div class="modal" style="max-width:380px;text-align:center">
+  <div style="font-size:48px;margin-bottom:1rem">🔒</div>
+  <h2 id="ww-titel" style="margin-bottom:0.5rem">Beveiligd</h2>
+  <p id="ww-uitleg" style="color:var(--ink3);font-size:14px;margin-bottom:1.5rem"></p>
+  <input type="password" id="ww-input" placeholder="Wachtwoord..." style="margin-bottom:1rem;text-align:center;font-size:18px;letter-spacing:4px" onkeydown="if(event.key==='Enter')controleerWachtwoord()">
+  <div id="ww-fout" style="color:var(--red);font-size:13px;margin-bottom:0.75rem;display:none">❌ Fout wachtwoord</div>
+  <div style="display:flex;gap:8px;justify-content:center">
+    <button class="btn btn-secondary" onclick="closeModal('modal-wachtwoord')">Annuleren</button>
+    <button class="btn btn-primary" onclick="controleerWachtwoord()">🔓 Bevestigen</button>
+  </div>
+</div>
+</div>
+
+<!-- BEHEER PAGE -->
+<div class="page" id="page-beheer">
+<div class="container">
+  <div class="page-header">
+    <h2>Lijsten beheren</h2>
+  </div>
+  <p style="color:var(--ink3);font-size:14px;margin-bottom:0.5rem">Hier kan je genres, types, thema's, AVI-niveaus, klassen en talen toevoegen of verwijderen. Alle leerkrachten zien deze aanpassingen meteen.</p>
+  <div class="beheer-grid" id="beheer-grid"></div>
+</div>
+</div>
+
+<!-- BOEK DETAIL MODAL -->
+<div class="modal-bg" id="modal-detail">
+<div class="modal" style="max-width:740px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem">
+    <h2 id="detail-titel" style="flex:1;margin-bottom:0"></h2>
+    <div style="display:flex;gap:8px;flex-shrink:0;margin-left:1rem;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn btn-primary btn-sm" onclick="voegToeAanBib()">🏫 Naar Bib</button>
+      <button class="btn btn-secondary btn-sm" id="btn-bewerk" onclick="bewerkHuidigBoek()">✏️ Bewerken</button>
+      <button class="btn btn-danger btn-sm" id="btn-verwijder" onclick="verwijderHuidigBoek()">🗑 Verwijderen</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-detail')">✕</button>
+    </div>
+  </div>
+  <div class="detail-layout">
+    <div>
+      <div class="detail-cover" id="detail-cover-wrap"></div>
+    </div>
+    <dl class="detail-meta" id="detail-meta"></dl>
+  </div>
+  <div style="margin-top:1.5rem" id="detail-notities-wrap"></div>
+</div>
+</div>
+
+<!-- BOEK FORM MODAL -->
+<div class="modal-bg" id="modal-form">
+<div class="modal">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 id="form-title">Boek toevoegen</h2>
+    <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-form')">✕</button>
+  </div>
+  <form onsubmit="slaBoekOp(event)">
+    <div class="form-grid">
+      <!-- COVER -->
+      <div class="form-full">
+        <label>ISBN (haalt automatisch info op)</label>
+        <div class="isbn-row" style="margin-bottom:0.75rem">
+          <input type="text" id="f-isbn" placeholder="bv. 9789021679976">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="haalCoverOp()">Boek ophalen</button>
+        </div>
+        <label>Cover</label>
+        <input type="file" id="coverFileInput" accept="image/*" onchange="handleCoverUpload(event)">
+        <div class="cover-dropzone" id="cover-dropzone"
+          onclick="handleDropzoneClick(event)"
+          ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)"
+          ondrop="handleDrop(event)">
+          <div class="drop-icon">🖼️</div>
+          <div class="drop-label">Sleep een afbeelding hierheen<br>of <strong>klik</strong> om te uploaden<br>of plak met <strong>Ctrl+V</strong></div>
+          <img class="drop-img" id="cover-preview" alt="cover">
+          <div class="cover-overlay">
+            <button onclick="event.stopPropagation();verwijderCover()">🗑 Verwijder</button>
+            <button type="button" onclick="event.stopPropagation();event.preventDefault();document.getElementById('coverFileInput').click()">📁 Vervang</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" style="margin-top:6px;width:100%" onclick="zoekOpGoogleImages()">🔍 Zoek cover op Google Images</button>
+      </div>
+      <div>
+        <label>Titel *</label>
+        <input type="text" id="f-titel" required placeholder="Boektitel" oninput="checkDuplicaat()">
+        <div id="duplicaat-waarschuwing" style="display:none;margin-top:8px;background:#fff8e1;border:1px solid #f0c040;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#7a5c00"><strong>⚠️ Dit boek staat al ergens in de app!</strong><br><span id="duplicaat-naam"></span><br><div style="display:flex;gap:8px;margin-top:8px"><button type="button" class="btn btn-primary btn-sm" onclick="bewerkDuplicaat()">✏️ Bewerk bestaand boek</button><button type="button" class="btn btn-secondary btn-sm" onclick="negerDuplicaat()">Toch nieuw toevoegen</button></div></div>
+      </div>
+      <div>
+        <label>Auteur *</label>
+        <input type="text" id="f-auteur" required placeholder="Voornaam Achternaam">
+      </div>
+      <div>
+        <label>Uitgeverij</label>
+        <input type="text" id="f-uitgeverij" placeholder="Naam uitgeverij">
+      </div>
+      <div>
+        <label>Taal</label>
+        <select id="f-taal-form"></select>
+      </div>
+      <div class="form-full">
+        <label>Leeftijd</label>
+        <div class="multi-select" id="ms-leeftijd">
+          <label><input type="checkbox" value="2"> 2 jaar</label>
+          <label><input type="checkbox" value="3"> 3 jaar</label>
+          <label><input type="checkbox" value="4"> 4 jaar</label>
+          <label><input type="checkbox" value="5"> 5 jaar</label>
+          <label><input type="checkbox" value="6"> 6 jaar</label>
+          <label><input type="checkbox" value="7"> 7 jaar</label>
+          <label><input type="checkbox" value="8"> 8 jaar</label>
+          <label><input type="checkbox" value="9"> 9 jaar</label>
+          <label><input type="checkbox" value="10"> 10 jaar</label>
+          <label><input type="checkbox" value="11"> 11 jaar</label>
+          <label><input type="checkbox" value="12"> 12 jaar</label>
+          <label><input type="checkbox" value="13"> 13 jaar</label>
+          <label><input type="checkbox" value="14"> 14+</label>
+        </div>
+      </div>
+      <div>
+        <label>AVI niveau</label>
+        <select id="f-avi-form"></select>
+      </div>
+      <div>
+        <label>Beoordeling (sterren)</label>
+        <div style="display:flex;gap:4px;align-items:center;padding:6px 0" id="sterren-input">
+          <span class="star" data-v="1" onclick="setSterren(1)" style="font-size:22px;cursor:pointer;color:var(--paper3)">★</span>
+          <span class="star" data-v="2" onclick="setSterren(2)" style="font-size:22px;cursor:pointer;color:var(--paper3)">★</span>
+          <span class="star" data-v="3" onclick="setSterren(3)" style="font-size:22px;cursor:pointer;color:var(--paper3)">★</span>
+          <span class="star" data-v="4" onclick="setSterren(4)" style="font-size:22px;cursor:pointer;color:var(--paper3)">★</span>
+          <span class="star" data-v="5" onclick="setSterren(5)" style="font-size:22px;cursor:pointer;color:var(--paper3)">★</span>
+          <span id="sterren-label" style="font-size:13px;color:var(--ink3);margin-left:6px"></span>
+        </div>
+      </div>
+      <!-- MULTI SELECTS -->
+      <div class="form-full">
+        <label>Type boek</label>
+        <div class="multi-select" id="ms-types"></div>
+      </div>
+      <div class="form-full">
+        <label>Thema('s)</label>
+        <div class="multi-select" id="ms-themas"></div>
+      </div>
+      <div class="form-full">
+        <label>Extra (bv. Bekroond, Verfilmd...)</label>
+        <div class="multi-select" id="ms-extra"></div>
+      </div>
+      <div class="form-full">
+        <label>Klas(sen)</label>
+        <div class="multi-select" id="ms-klassen"></div>
+      </div>
+      <div class="form-full">
+        <label>Extra info / notities leerkracht</label>
+        <textarea id="f-notities" placeholder="Persoonlijke notities, tips voor de klas..."></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1.5rem">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('modal-form')">Annuleren</button>
+      <button type="submit" class="btn btn-primary" id="submit-btn">💾 Opslaan</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- TOAST -->
+<div class="modal-bg" id="modal-samenvoegen">
+<div class="modal" style="max-width:420px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 style="margin:0">Items samenvoegen</h2>
+    <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-samenvoegen')">✕</button>
+  </div>
+  <p style="font-size:14px;color:var(--ink2);margin-bottom:1.25rem">
+    Kies waarmee je <strong id="merge-bron-label"></strong> wil samenvoegen. Alle boeken worden bijgewerkt en het oorspronkelijke item verdwijnt.
+  </p>
+  <label style="font-size:13px;font-weight:500;color:var(--ink2);margin-bottom:6px;display:block">Samenvoegen met:</label>
+  <select id="merge-doel" style="margin-bottom:1.25rem;font-size:14px"></select>
+  <div style="background:var(--paper2);border-radius:var(--radius);padding:0.75rem;font-size:13px;color:var(--ink3);margin-bottom:1.25rem">
+    💡 <strong id="merge-bron-label2"></strong> wordt samengevoegd in het gekozen item en daarna automatisch verwijderd.
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn btn-secondary" onclick="closeModal('modal-samenvoegen')">Annuleren</button>
+    <button class="btn btn-primary" onclick="bevestigSamenvoegen()">⇒ Samenvoegen</button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== FIREBASE CONFIG ==========
+// VERVANG DIT MET UW EIGEN FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyAOLgDkzvPHtQxn7lN2qYJeVBrQtf3CG9M",
+  authDomain: "boekencatalogus-school.firebaseapp.com",
+  databaseURL: "https://boekencatalogus-school-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "boekencatalogus-school",
+  storageBucket: "boekencatalogus-school.firebasestorage.app",
+  messagingSenderId: "848061709343",
+  appId: "1:848061709343:web:dbc9e1a43a949095c1692a"
+};
+
+// ========== DEMO MODE (zonder Firebase) ==========
+// Als Firebase nog niet geconfigureerd is, werkt de app met lokale data
+let useFirebase = false;
+let db, storage;
+
+try {
+  firebase.initializeApp(firebaseConfig);
+  if (firebaseConfig.apiKey !== "JOUW_API_KEY_PLACEHOLDER") {
+    db = firebase.firestore();
+    storage = firebase.storage();
+    useFirebase = true;
+  }
+} catch(e) {}
+
+// ========== LOKALE DEMO DATA ==========
+let localBoeken = [
+  {
+    id: 'demo1',
+    titel: 'De brief voor de koning',
+    auteur: 'Tonke Dragt',
+    uitgeverij: 'Leopold',
+    isbn: '9789025876401',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9789025876401-M.jpg',
+    types: ['Jeugdroman'],
+    themas: ['Moed', 'Vriendschap', 'Ridderschap'],
+    klassen: ['5B', '6A'],
+    taal: 'Nederlands',
+    leeftijd: 10,
+    avi: 'AVI E6',
+    sterren: 5,
+    notities: 'Klassieker! Leerlingen waren erg enthousiast. Goed voor groepsdiscussie over moed en eerlijkheid.'
+  },
+  {
+    id: 'demo2',
+    titel: 'Kruistocht in spijkerbroek',
+    auteur: 'Thea Beckman',
+    uitgeverij: 'Lemniscaat',
+    isbn: '9789047707066',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9789047707066-M.jpg',
+    types: ['Jeugdroman'],
+    themas: ['Tijdreizen', 'Middeleeuwen', 'Moed'],
+    klassen: ['6A', '6B'],
+    taal: 'Nederlands',
+    leeftijd: 11,
+    avi: 'AVI Plus',
+    sterren: 4,
+    notities: 'Boeiend historisch verhaal. Leerlingen leerden veel over de middeleeuwen.'
+  }
+];
+let localLijsten = {
+  types: ['Prentenboek','Jeugdroman','Graphic novel','Non-fictie','Gedichtenbundel','Stripboek'],
+  themas: ['Vriendschap','Familie','Moed','Natuur','School','Avontuur','Verdriet','Dieren','Oorlog','Liefde'],
+  klassen: ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B'],
+  talen: ['Nederlands','Frans','Engels','Duits','Spaans'],
+  avi: ['AVI Start','AVI M3','AVI E3','AVI M4','AVI E4','AVI M5','AVI E5','AVI M6','AVI E6','AVI Plus'],
+  extra: ['Bekroond','Verfilmd','Klassieker','Leesclub tip','Genomineerd'],
+  locaties: ['Schoolbib hoofdschool','Schoolbib wijkschool','Klas 1','Klas 2','Klas 3','Klas 4','Klas 5','Klas 6']
+};
+
+// ========== STATE ==========
+let boeken = [];
+let lijsten = {};
+let localPrullenbak = [];
+let huidigBoekId = null;
+let bewerkModus = false;
+let coverData = null; // base64 of URL
+let gekozenSterren = 0;
+
+// ========== BIB STATE ==========
+let bibBoeken = [];
+let localBibBoeken = [];
+let huidigBibBoekId = null;
+let bewerkBibModus = false;
+let bibCoverData = null;
+let bibDuplicaatNegeren = false;
+let gevondenBibDuplicaatId = null;
+let huidigUitleenId = null;
+
+// ========== BIB INIT ==========
+function laadBib() {
+  if (useFirebase) {
+    db.collection('bib').orderBy('titel').onSnapshot(snap => {
+      bibBoeken = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      filterBib();
+      updateBibFilterOpties();
+    });
+  } else {
+    bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+    filterBib();
+    updateBibFilterOpties();
+  }
+}
+
+// ========== BIB RENDER ==========
+function filterBib() {
+  const zoek = (document.getElementById('bib-zoek').value||'').toLowerCase();
+  const types = getFilterChecked('bib-type');
+  const themas = getFilterChecked('bib-thema');
+  const locaties = getFilterChecked('bib-locatie');
+  const talen = getFilterChecked('bib-taal');
+  const leeftijdJaren = getFilterChecked('bib-leeftijd').map(Number);
+  const avis = getFilterChecked('bib-avi');
+  const extras = getFilterChecked('bib-extra');
+  const statussen = getFilterChecked('bib-uitleen');
+  const sorteer = document.getElementById('bib-sorteer')?.value || 'nieuwst';
+
+  const res = bibBoeken.filter(b => {
+    if (zoek && !`${b.titel} ${b.auteur} ${b.isbn}`.toLowerCase().includes(zoek)) return false;
+    if (types.length && !types.some(t => (b.types||[]).includes(t))) return false;
+    if (themas.length && !themas.some(t => (b.themas||[]).includes(t))) return false;
+    if (locaties.length && !locaties.some(l => (b.locaties||[]).includes(l))) return false;
+    if (talen.length && !talen.includes(b.taal)) return false;
+    if (leeftijdJaren.length) {
+      const la = (Array.isArray(b.leeftijd)?b.leeftijd:(b.leeftijd?[b.leeftijd]:[])).map(Number);
+      if (!leeftijdJaren.some(j => la.includes(j))) return false;
+    }
+    if (avis.length && !avis.includes(b.avi)) return false;
+    if (extras.length && !extras.some(e => (b.extra||[]).includes(e))) return false;
+    if (statussen.length) {
+      const isUitgeleend = !!(b.uitgeleendAan);
+      if (statussen.includes('beschikbaar') && !statussen.includes('uitgeleend') && isUitgeleend) return false;
+      if (statussen.includes('uitgeleend') && !statussen.includes('beschikbaar') && !isUitgeleend) return false;
+    }
+    return true;
+  });
+
+  // Sortering
+  res.sort((a, b) => {
+    if (sorteer === 'titel-az') return (a.titel||'').localeCompare(b.titel||'', 'nl');
+    if (sorteer === 'titel-za') return (b.titel||'').localeCompare(a.titel||'', 'nl');
+    if (sorteer === 'auteur-az') return (a.auteur||'').localeCompare(b.auteur||'', 'nl');
+    if (sorteer === 'auteur-za') return (b.auteur||'').localeCompare(a.auteur||'', 'nl');
+    return new Date(b.aangepastOp||0) - new Date(a.aangepastOp||0);
+  });
+
+  updateFilterBtnLabel('bib-type', 'Type');
+  updateFilterBtnLabel('bib-thema', "Thema's");
+  updateFilterBtnLabel('bib-locatie', 'Locatie');
+  updateFilterBtnLabel('bib-taal', 'Taal');
+  updateFilterBtnLabel('bib-leeftijd', 'Leeftijd');
+  updateFilterBtnLabel('bib-avi', 'AVI');
+  updateFilterBtnLabel('bib-extra', 'Extra');
+  updateFilterBtnLabel('bib-uitleen', 'Status');
+
+  document.getElementById('bib-result-count').textContent = res.length + ' boek' + (res.length !== 1 ? 'en' : '');
+  renderBibBoeken(res);
+}
+
+function renderBibBoeken(lijst) {
+  const grid = document.getElementById('bib-grid');
+  if (!lijst.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><h3>Geen boeken gevonden</h3><p>Pas je filters aan of voeg een nieuw boek toe.</p></div>';
+    return;
+  }
+  grid.innerHTML = lijst.map(b => `
+    <div class="book-card" onclick="toonBibDetail('${b.id}')">
+      <div class="book-cover">
+        ${b.coverUrl ? `<img src="${b.coverUrl}" alt="${b.titel}" onerror="this.style.display='none'">` : '📖'}
+        ${b.uitgeleendAan ? '<div style="position:absolute;top:8px;right:8px;background:#9b2335;color:#fff;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600">Uitgeleend</div>' : '<div style="position:absolute;top:8px;right:8px;background:#2d6a4f;color:#fff;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600">Beschikbaar</div>'}
+      </div>
+      <div class="book-info">
+        <div class="book-title">${b.titel}</div>
+        <div class="book-author">${b.auteur||''}</div>
+        <div class="book-tags">
+          ${(b.types||[]).slice(0,1).map(t=>`<span class="tag type">${t}</span>`).join('')}
+          ${(b.locaties||[]).slice(0,1).map(l=>`<span class="tag" style="background:#e8f4f8;color:#0c5460">${l}</span>`).join('')}
+        </div>
+        ${b.uitgeleendAan ? `<div style="font-size:11px;color:var(--red);margin-top:4px">📤 ${b.uitgeleendAan}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function resetBibFilters() {
+  document.getElementById('bib-zoek').value = '';
+  document.querySelectorAll('.filter-panel input[type=checkbox]').forEach(cb => {
+    if (cb.closest('#bib-type,#bib-thema,#bib-locatie,#bib-taal,#bib-leeftijd,#bib-avi,#bib-extra,#bib-uitleen')) cb.checked = false;
+  });
+  if (document.getElementById('bib-sorteer')) document.getElementById('bib-sorteer').value = 'nieuwst';
+  filterBib();
+}
+
+function updateBibFilterOpties() {
+  const bibSets = {
+    'bib-type': lijsten.types||[],
+    'bib-thema': lijsten.themas||[],
+    'bib-locatie': lijsten.locaties||[],
+    'bib-taal': lijsten.talen||[],
+    'bib-avi': lijsten.avi||[],
+    'bib-extra': lijsten.extra||[]
+  };
+  for (const [id, items] of Object.entries(bibSets)) {
+    const panel = document.getElementById(id);
+    if (!panel) continue;
+    const inner = panel.querySelector('.filter-panel-inner');
+    if (!inner) continue;
+    const checked = getFilterChecked(id);
+    inner.innerHTML = items.map(i =>
+      `<label><input type="checkbox" value="${i}" onchange="filterBib()" ${checked.includes(i)?'checked':''}> ${i}</label>`
+    ).join('');
+  }
+}
+
+// ========== BIB DETAIL ==========
+function toonBibDetail(id) {
+  const b = bibBoeken.find(x => x.id === id);
+  if (!b) return;
+  huidigBibBoekId = id;
+  document.getElementById('bib-detail-titel').textContent = b.titel;
+  const covWrap = document.getElementById('bib-detail-cover');
+  covWrap.innerHTML = b.coverUrl ? `<img src="${b.coverUrl}" alt="${b.titel}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">` : '📖';
+
+  const meta = document.getElementById('bib-detail-meta');
+  const rij = (label, waarde) => waarde ? `<dt>${label}</dt><dd>${waarde}</dd>` : '';
+  const bibTags = (arr, cls) => arr&&arr.length ? `<div class="detail-tags">${arr.map(t=>`<span class="tag ${cls}">${t}</span>`).join('')}</div>` : '';
+  meta.innerHTML = `
+    ${rij('Auteur', b.auteur)}
+    ${rij('Uitgeverij', b.uitgeverij)}
+    ${rij('ISBN', b.isbn)}
+    ${rij('Taal', b.taal)}
+    ${rij('Leeftijd', (Array.isArray(b.leeftijd)?b.leeftijd:(b.leeftijd?[b.leeftijd]:[])).map(l=>l+' jaar').join(', '))}
+    ${rij('AVI', b.avi)}
+    ${rij('Aantal exemplaren', b.aantal)}
+    <dt>Type</dt><dd>${bibTags(b.types,'type')}</dd>
+    <dt>Thema's</dt><dd>${bibTags(b.themas,'thema')}</dd>
+    <dt>Extra</dt><dd>${bibTags(b.extra,'extra')}</dd>
+  `;
+
+  // Locaties
+  const locWrap = document.getElementById('bib-detail-locaties-wrap');
+  if (b.locaties && b.locaties.length) {
+    locWrap.innerHTML = `<div style="background:var(--paper2);border-radius:var(--radius);padding:1rem;margin-bottom:1rem">
+      <div style="font-size:12px;color:var(--ink3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Locaties op school</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${b.locaties.map(l=>`<span class="tag" style="background:#e8f4f8;color:#0c5460">${l}</span>`).join('')}</div>
+    </div>`;
+  } else { locWrap.innerHTML = ''; }
+
+  // Uitleen status
+  const uitWrap = document.getElementById('uitleen-status-wrap');
+  if (b.uitgeleendAan) {
+    uitWrap.innerHTML = `
+      <div style="background:#fce4ec;border-radius:var(--radius);padding:0.75rem;margin-bottom:0.5rem">
+        <div style="font-size:12px;color:#880e4f;font-weight:600;margin-bottom:4px">📤 Uitgeleend</div>
+        <div style="font-size:13px;color:#880e4f">${b.uitgeleendAan}</div>
+        ${b.uitgeleendVanuit ? `<div style="font-size:12px;color:#880e4f;margin-top:2px">Vanuit: ${b.uitgeleendVanuit}</div>` : ''}
+        ${b.uitgeleendOp ? `<div style="font-size:11px;color:#ad1457;margin-top:2px">${new Date(b.uitgeleendOp).toLocaleDateString('nl-BE')}</div>` : ''}
+      </div>
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-bottom:6px" onclick="retourneerBoek('${b.id}')">↩ Boek teruggekeerd</button>`;
+  } else {
+    uitWrap.innerHTML = `
+      <div style="background:#d4edda;border-radius:var(--radius);padding:0.75rem;margin-bottom:0.5rem">
+        <div style="font-size:12px;color:#155724;font-weight:600">✅ Beschikbaar</div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-bottom:6px" onclick="openUitleen('${b.id}')">📤 Uitlenen</button>`;
+  }
+
+  if (b.notities) {
+    locWrap.innerHTML += `<div style="background:var(--paper2);border-left:3px solid var(--accent2);border-radius:0 var(--radius) var(--radius) 0;padding:0.75rem"><div style="font-size:12px;color:var(--ink3);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Notities</div><div style="font-size:14px;white-space:pre-wrap">${b.notities}</div></div>`;
+  }
+
+  document.getElementById('modal-bib-detail').classList.add('open');
+}
+
+// ========== UITLEEN ==========
+function openUitleen(id) {
+  huidigUitleenId = id;
+  const b = bibBoeken.find(x => x.id === id);
+  document.getElementById('uitleen-boek-titel').textContent = b?.titel || '';
+  document.getElementById('uitleen-naam').value = '';
+  const sel = document.getElementById('uitleen-locatie');
+  // Toon enkel locaties waar het boek aanwezig is
+  const boekLocaties = b?.locaties?.length ? b.locaties : (lijsten.locaties||[]);
+  sel.innerHTML = '<option value="">-- kies locatie --</option>' + boekLocaties.map(l=>`<option>${l}</option>`).join('');
+  if (boekLocaties.length === 1) sel.value = boekLocaties[0];
+  document.getElementById('modal-uitleen').classList.add('open');
+}
+
+async function bevestigUitleen() {
+  const naam = document.getElementById('uitleen-naam').value.trim();
+  if (!naam) { showToast('Vul een naam in'); return; }
+  const locatie = document.getElementById('uitleen-locatie').value;
+  const data = { uitgeleendAan: naam, uitgeleendVanuit: locatie, uitgeleendOp: new Date().toISOString() };
+  if (useFirebase) {
+    await db.collection('bib').doc(huidigUitleenId).update(data);
+  } else {
+    const idx = localBibBoeken.findIndex(b => b.id === huidigUitleenId);
+    if (idx >= 0) Object.assign(localBibBoeken[idx], data);
+    bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+    filterBib();
+  }
+  closeModal('modal-uitleen');
+  closeModal('modal-bib-detail');
+  showToast(`Uitgeleend aan ${naam} ✅`);
+}
+
+async function retourneerBoek(id) {
+  if (!confirm('Boek teruggekeerd bevestigen?')) return;
+  const data = { uitgeleendAan: null, uitgeleendVanuit: null, uitgeleendOp: null };
+  if (useFirebase) {
+    await db.collection('bib').doc(id).update(data);
+  } else {
+    const idx = localBibBoeken.findIndex(b => b.id === id);
+    if (idx >= 0) Object.assign(localBibBoeken[idx], data);
+    bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+    filterBib();
+  }
+  closeModal('modal-bib-detail');
+  showToast('Boek teruggekeerd ✅');
+}
+
+// ========== NAAR CATALOGUS ==========
+function voegToeAanCatalogus() {
+  const b = bibBoeken.find(x => x.id === huidigBibBoekId);
+  if (!b) return;
+  // Controleer of al in catalogus
+  const bestaatAl = boeken.some(c => c.isbn && c.isbn === b.isbn || c.titel.toLowerCase() === b.titel.toLowerCase());
+  if (bestaatAl) {
+    if (!confirm('Dit boek staat mogelijk al in de catalogus. Toch toevoegen?')) return;
+  }
+  closeModal('modal-bib-detail');
+  // Open catalogus form met data vooringevuld
+  const boekData = {
+    titel: b.titel, auteur: b.auteur, uitgeverij: b.uitgeverij,
+    isbn: b.isbn, coverUrl: b.coverUrl, taal: b.taal,
+    types: b.types||[], notities: b.notities||'',
+    genres:[], themas:[], klassen:[], extra:[], leeftijd:[], avi:'', sterren:0
+  };
+  showPage('catalogus');
+  setTimeout(() => openBoekModal(boekData), 100);
+}
+
+// ========== FAVORIETEN NAAR BIB ==========
+function voegToeAanBib() {
+  const b = boeken.find(x => x.id === huidigBoekId);
+  if (!b) return;
+  const bestaatAl = bibBoeken.some(bb => (bb.isbn && bb.isbn === b.isbn) || bb.titel.toLowerCase() === b.titel.toLowerCase());
+  if (bestaatAl) {
+    if (!confirm('Dit boek staat mogelijk al in de Schoolbib. Toch toevoegen?')) return;
+  }
+  closeModal('modal-detail'); // sluit detail eerst
+  document.getElementById('naar-bib-titel').textContent = `"${b.titel}"`;
+  document.getElementById('naar-bib-aantal').value = 1;
+  renderMultiSelect('naar-bib-ms-locaties', lijsten.locaties||[], []);
+  document.getElementById('modal-naar-bib').classList.add('open');
+}
+
+async function bevestigNaarBib() {
+  const b = boeken.find(x => x.id === huidigBoekId);
+  if (!b) return;
+  const locaties = getChecked('naar-bib-ms-locaties');
+  const aantal = parseInt(document.getElementById('naar-bib-aantal').value)||1;
+  const data = {
+    titel: b.titel, auteur: b.auteur, uitgeverij: b.uitgeverij||'',
+    isbn: b.isbn||'', coverUrl: b.coverUrl||'', taal: b.taal||'',
+    types: b.types||[], themas: b.themas||[], leeftijd: b.leeftijd||[],
+    avi: b.avi||'', extra: b.extra||[], notities: b.notities||'',
+    locaties: locaties, aantal: aantal,
+    aangepastOp: new Date().toISOString()
+  };
+  if (useFirebase) {
+    await db.collection('bib').add(data);
+  } else {
+    localBibBoeken.push({id:'bib'+Date.now(), ...data});
+    bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+    filterBib();
+  }
+  closeModal('modal-naar-bib');
+  closeModal('modal-detail');
+  showToast(`"${b.titel}" toegevoegd aan Schoolbib! 🏫`);
+}
+
+// ========== BIB FORM ==========
+function openBibBoekModal(boek = null) {
+  bewerkBibModus = !!boek;
+  bibCoverData = null;
+  bibDuplicaatNegeren = false;
+  document.getElementById('bib-form-title').textContent = boek ? 'Bib boek bewerken' : 'Boek toevoegen aan Bib';
+  ['bib-f-isbn','bib-f-titel','bib-f-auteur','bib-f-uitgeverij','bib-f-notities'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('bib-f-aantal').value = 1;
+  verwijderBibCover();
+  document.getElementById('bib-duplicaat-waarschuwing').style.display = 'none';
+
+  const taalSel = document.getElementById('bib-f-taal');
+  taalSel.innerHTML = '<option value="">-- kies taal --</option>' + (lijsten.talen||[]).map(t=>`<option>${t}</option>`).join('');
+  renderMultiSelect('bib-ms-types', lijsten.types||[], boek?.types||[]);
+  renderMultiSelect('bib-ms-themas', lijsten.themas||[], boek?.themas||[]);
+  renderMultiSelect('bib-ms-extra', lijsten.extra||[], boek?.extra||[]);
+  renderMultiSelect('bib-ms-locaties', lijsten.locaties||[], boek?.locaties||[]);
+  const aviSelBib = document.getElementById('bib-f-avi');
+  aviSelBib.innerHTML = '<option value="">-- kies niveau --</option>' + (lijsten.avi||[]).map(a=>`<option>${a}</option>`).join('');
+  // Leeftijd checkboxes
+  document.querySelectorAll('#bib-ms-leeftijd input').forEach(cb => {
+    cb.checked = (Array.isArray(boek?.leeftijd) ? boek.leeftijd : (boek?.leeftijd ? [boek.leeftijd] : [])).map(String).includes(cb.value);
+  });
+
+  if (boek) {
+    document.getElementById('bib-f-isbn').value = boek.isbn||'';
+    document.getElementById('bib-f-titel').value = boek.titel||'';
+    document.getElementById('bib-f-auteur').value = boek.auteur||'';
+    document.getElementById('bib-f-uitgeverij').value = boek.uitgeverij||'';
+    document.getElementById('bib-f-notities').value = boek.notities||'';
+    document.getElementById('bib-f-aantal').value = boek.aantal||1;
+    taalSel.value = boek.taal||'';
+    document.getElementById('bib-f-avi').value = boek.avi||'';
+    if (boek.coverUrl) setBibCoverImage(boek.coverUrl);
+  }
+  closeModal('modal-bib-detail');
+  document.getElementById('modal-bib-form').classList.add('open');
+}
+
+function setBibCoverImage(src) {
+  if (src.startsWith('data:')) {
+    verkleinAfbeelding(src, (verkleind) => {
+      bibCoverData = verkleind;
+      const prev = document.getElementById('bib-cover-preview');
+      prev.src = verkleind;
+      document.getElementById('bib-cover-dropzone').classList.add('has-cover');
+    });
+  } else {
+    bibCoverData = src;
+    const prev = document.getElementById('bib-cover-preview');
+    prev.src = src;
+    document.getElementById('bib-cover-dropzone').classList.add('has-cover');
+  }
+}
+
+function verwijderBibCover() {
+  bibCoverData = null;
+  document.getElementById('bib-cover-preview').src = '';
+  document.getElementById('bib-cover-dropzone').classList.remove('has-cover');
+  const inp = document.getElementById('bibCoverFileInput');
+  if (inp) inp.value = '';
+}
+
+function handleBibDropzoneClick(e) {
+  if (e.target.closest('.cover-overlay')) return;
+  document.getElementById('bibCoverFileInput').click();
+}
+
+function handleBibDrop(e) {
+  e.preventDefault();
+  document.getElementById('bib-cover-dropzone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = ev => setBibCoverImage(ev.target.result);
+    reader.readAsDataURL(file);
+    return;
+  }
+  const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+  if (url && url.match(/\.(jpg|jpeg|png|gif|webp)/i)) setBibCoverImage(url);
+}
+
+function handleBibCoverUpload(e) {
+  const file = e.target.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = ev => setBibCoverImage(ev.target.result);
+  reader.readAsDataURL(file);
+}
+
+function zoekBibOpGoogleImages() {
+  const titel = document.getElementById('bib-f-titel').value.trim();
+  const auteur = document.getElementById('bib-f-auteur').value.trim();
+  window.open('https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(titel + ' ' + auteur + ' boek cover'), '_blank');
+}
+
+async function haalBibCoverOp() {
+  const isbn = document.getElementById('bib-f-isbn').value.replace(/[^0-9X]/g,'');
+  if (!isbn) { showToast('Vul eerst een ISBN in'); return; }
+  const btn = document.querySelector('#modal-bib-form .isbn-row .btn');
+  btn.textContent = '⏳ Ophalen...'; btn.disabled = true;
+  try {
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    const data = await res.json();
+    if (data.totalItems > 0) {
+      const info = data.items[0].volumeInfo;
+      if (info.title && !document.getElementById('bib-f-titel').value) document.getElementById('bib-f-titel').value = info.title;
+      if (info.authors?.length && !document.getElementById('bib-f-auteur').value) document.getElementById('bib-f-auteur').value = info.authors.join(', ');
+      if (info.publisher && !document.getElementById('bib-f-uitgeverij').value) document.getElementById('bib-f-uitgeverij').value = info.publisher;
+      if (info.language) {
+        const taalMap = {'nl':'Nederlands','en':'Engels','fr':'Frans','de':'Duits','es':'Spaans'};
+        const taalNaam = taalMap[info.language];
+        if (taalNaam) { const s = document.getElementById('bib-f-taal'); if ([...s.options].some(o=>o.value===taalNaam)) s.value = taalNaam; }
+      }
+      let coverUrl = info.imageLinks?.extraLarge || info.imageLinks?.large || info.imageLinks?.medium || info.imageLinks?.thumbnail || '';
+      if (coverUrl) coverUrl = coverUrl.replace('http://','https://').replace('&edge=curl','').replace('zoom=1','zoom=3');
+      if (coverUrl) setBibCoverImage(coverUrl);
+      showToast('✅ Boekinfo opgehaald!');
+    } else { showToast('Geen info gevonden'); }
+  } catch(e) { showToast('Fout: ' + e.message); }
+  btn.textContent = 'Boek ophalen'; btn.disabled = false;
+}
+
+function checkBibDuplicaat() {
+  if (bewerkBibModus || bibDuplicaatNegeren) return;
+  const titel = document.getElementById('bib-f-titel').value.trim().toLowerCase();
+  if (titel.length < 3) { document.getElementById('bib-duplicaat-waarschuwing').style.display = 'none'; return; }
+  // Check in Bib
+  const matchBib = bibBoeken.find(b => b.titel.toLowerCase().includes(titel) || titel.includes(b.titel.toLowerCase()));
+  // Check in Favorieten
+  const matchFav = boeken.find(b => b.titel.toLowerCase().includes(titel) || titel.includes(b.titel.toLowerCase()));
+  const warn = document.getElementById('bib-duplicaat-waarschuwing');
+  const naam = document.getElementById('bib-duplicaat-naam');
+  if (matchBib) {
+    gevondenBibDuplicaatId = matchBib.id;
+    naam.innerHTML = `"${matchBib.titel}" <span style="background:#cce5ff;color:#004085;padding:1px 7px;border-radius:20px;font-size:11px">al in Bib</span>`;
+    warn.style.display = 'block';
+  } else if (matchFav) {
+    gevondenBibDuplicaatId = null;
+    naam.innerHTML = `"${matchFav.titel}" <span style="background:#f0d9b5;color:#7a4f1e;padding:1px 7px;border-radius:20px;font-size:11px">staat in Favorieten</span>`;
+    warn.style.display = 'block';
+    // Pas knoppen aan
+    warn.querySelector('.btn-primary').textContent = '⭐ Bekijk in Favorieten';
+    warn.querySelector('.btn-primary').onclick = () => { closeModal('modal-bib-form'); showPage('catalogus'); setTimeout(()=>toonDetail(matchFav.id),100); };
+  } else {
+    gevondenBibDuplicaatId = null;
+    warn.style.display = 'none';
+    // Reset knop
+    warn.querySelector('.btn-primary').textContent = '✏️ Bewerk bestaand boek';
+    warn.querySelector('.btn-primary').onclick = bewerkBibDuplicaat;
+  }
+}
+
+function bewerkBibDuplicaat() {
+  const boek = bibBoeken.find(b => b.id === gevondenBibDuplicaatId);
+  if (boek) openBibBoekModal(boek);
+}
+
+function negerBibDuplicaat() {
+  bibDuplicaatNegeren = true;
+  document.getElementById('bib-duplicaat-waarschuwing').style.display = 'none';
+}
+
+async function slaaBibBoekOp(e) {
+  e.preventDefault();
+  const btn = document.getElementById('bib-submit-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Opslaan...';
+  const data = {
+    titel: document.getElementById('bib-f-titel').value.trim(),
+    auteur: document.getElementById('bib-f-auteur').value.trim(),
+    uitgeverij: document.getElementById('bib-f-uitgeverij').value.trim(),
+    isbn: document.getElementById('bib-f-isbn').value.trim(),
+    taal: document.getElementById('bib-f-taal').value,
+    aantal: parseInt(document.getElementById('bib-f-aantal').value)||1,
+    types: getChecked('bib-ms-types'),
+    themas: getChecked('bib-ms-themas'),
+    leeftijd: getChecked('bib-ms-leeftijd').map(Number),
+    avi: document.getElementById('bib-f-avi').value,
+    extra: getChecked('bib-ms-extra'),
+    locaties: getChecked('bib-ms-locaties'),
+    notities: document.getElementById('bib-f-notities').value.trim(),
+    coverUrl: bibCoverData || '',
+    aangepastOp: new Date().toISOString()
+  };
+  try {
+    if (useFirebase) {
+      if (bewerkBibModus && huidigBibBoekId) await db.collection('bib').doc(huidigBibBoekId).update(data);
+      else await db.collection('bib').add(data);
+    } else {
+      if (bewerkBibModus && huidigBibBoekId) {
+        const idx = localBibBoeken.findIndex(b => b.id === huidigBibBoekId);
+        if (idx >= 0) localBibBoeken[idx] = {id: huidigBibBoekId, ...data};
+      } else {
+        localBibBoeken.push({id: 'bib'+Date.now(), ...data});
+      }
+      bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+      filterBib();
+    }
+    showToast(bewerkBibModus ? 'Boek bijgewerkt!' : 'Boek toegevoegd aan Bib!');
+    closeModal('modal-bib-form');
+  } catch(err) { showToast('Fout: ' + err.message); }
+  btn.disabled = false; btn.innerHTML = '💾 Opslaan';
+}
+
+function bewerkBibBoek() {
+  const b = bibBoeken.find(x => x.id === huidigBibBoekId);
+  if (b) openBibBoekModal(b);
+}
+
+async function verwijderBibBoek() {
+  if (!confirm('Boek naar de prullenbak verplaatsen?')) return;
+  const b = bibBoeken.find(x => x.id === huidigBibBoekId);
+  if (!b) return;
+  const verwijderd = {...b, verwijderdOp: new Date().toISOString(), verwijderdUit: 'bib'};
+  if (useFirebase) {
+    await db.collection('prullenbak').doc(huidigBibBoekId).set(verwijderd);
+    await db.collection('bib').doc(huidigBibBoekId).delete();
+  } else {
+    localPrullenbak.push(verwijderd);
+    localBibBoeken = localBibBoeken.filter(b => b.id !== huidigBibBoekId);
+    bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+    filterBib();
+  }
+  closeModal('modal-bib-detail');
+  showToast('Boek naar prullenbak verplaatst');
+}
+
+// ========== EXCEL IMPORT/EXPORT BIB ==========
+function downloadBibTemplate() {
+  const uitleg = [{
+    Titel: '← Verplicht veld', Auteur: '← Verplicht veld', Uitgeverij: 'optioneel',
+    ISBN: 'optioneel', Taal: 'bv. Nederlands', Aantal: '(getal)',
+    Types: 'bv. Jeugdroman, Prentenboek (komma-gescheiden)',
+    Themas: "bv. Vriendschap, Natuur (komma-gescheiden)",
+    Leeftijd: 'bv. 6, 7, 8 (komma-gescheiden)',
+    AVI: 'bv. AVI M4',
+    Extra: 'bv. Bekroond, Verfilmd (komma-gescheiden)',
+    Locaties: 'bv. Schoolbib hoofdschool, Klas 3 (komma-gescheiden)',
+    Notities: 'optioneel'
+  },{
+    Titel: 'De brief voor de koning', Auteur: 'Tonke Dragt', Uitgeverij: 'Leopold',
+    ISBN: '9789025876401', Taal: 'Nederlands', Aantal: 2,
+    Types: 'Jeugdroman', Themas: 'Moed, Avontuur', Leeftijd: '10, 11, 12',
+    AVI: 'AVI E6', Extra: 'Klassieker', Locaties: 'Schoolbib hoofdschool', Notities: 'Aanrader!'
+  }];
+  const ws = XLSX.utils.json_to_sheet(uitleg);
+  // Maak uitlegkolom grijs
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Boeken');
+  XLSX.writeFile(wb, 'bib-template.xlsx');
+  showToast('Template gedownload! Verwijder de eerste uitleg-rij voor je importeert.');
+}
+
+async function importeerBibExcel(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const wb = XLSX.read(ev.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rijen = XLSX.utils.sheet_to_json(ws);
+      let toegevoegd = 0, overgeslagen = 0, leeg = 0;
+      for (const rij of rijen) {
+        const titel = String(rij.Titel||'').trim();
+        const isbn = String(rij.ISBN||'').trim();
+        if (!titel) { leeg++; continue; }
+        // Duplicaat check op ISBN of titel
+        const isDuplicaat = bibBoeken.some(b =>
+          (isbn && b.isbn && b.isbn === isbn) ||
+          b.titel.toLowerCase() === titel.toLowerCase()
+        );
+        if (isDuplicaat) { overgeslagen++; continue; }
+        const splitKomma = val => val ? String(val).split(',').map(s=>s.trim()).filter(Boolean) : [];
+        // Enkel waarden die in de beheerlijsten staan worden overgenomen
+        const filterLijst = (val, lijstKey) => splitKomma(val).filter(v => (lijsten[lijstKey]||[]).includes(v));
+        const taalVal = String(rij.Taal||'').trim();
+        const aviVal = String(rij.AVI||'').trim();
+        const data = {
+          titel,
+          auteur: String(rij.Auteur||'').trim(),
+          uitgeverij: String(rij.Uitgeverij||'').trim(),
+          isbn,
+          taal: (lijsten.talen||[]).includes(taalVal) ? taalVal : '',
+          aantal: parseInt(rij.Aantal)||1,
+          types: filterLijst(rij.Types, 'types'),
+          themas: filterLijst(rij.Themas, 'themas'),
+          leeftijd: splitKomma(rij.Leeftijd).map(Number).filter(n => n >= 2 && n <= 14),
+          avi: (lijsten.avi||[]).includes(aviVal) ? aviVal : '',
+          extra: filterLijst(rij.Extra, 'extra'),
+          locaties: filterLijst(rij.Locaties, 'locaties'),
+          notities: String(rij.Notities||'').trim(),
+          coverUrl: '', aangepastOp: new Date().toISOString()
+        };
+        if (useFirebase) await db.collection('bib').add(data);
+        else localBibBoeken.push({id:'bib'+Date.now()+toegevoegd, ...data});
+        toegevoegd++;
+      }
+      if (!useFirebase) { bibBoeken = JSON.parse(JSON.stringify(localBibBoeken)); filterBib(); }
+      let msg = `${toegevoegd} boeken geïmporteerd ✅`;
+      if (overgeslagen > 0) msg += ` · ${overgeslagen} overgeslagen (al aanwezig)`;
+      showToast(msg, 4000);
+    } catch(err) { showToast('Fout bij importeren: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+}
+
+function exportBibExcel() {
+  if (!bibBoeken.length) { showToast('Geen boeken om te exporteren'); return; }
+  const rows = bibBoeken.map(b => ({
+    Titel: b.titel, Auteur: b.auteur, Uitgeverij: b.uitgeverij, ISBN: b.isbn,
+    Taal: b.taal, Aantal: b.aantal, Types: (b.types||[]).join(', '),
+    Locaties: (b.locaties||[]).join(', '),
+    Status: b.uitgeleendAan ? 'Uitgeleend aan: ' + b.uitgeleendAan : 'Beschikbaar',
+    Notities: b.notities
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Bib');
+  XLSX.writeFile(wb, 'schoolbib.xlsx');
+  showToast('Excel gedownload!');
+}
+
+// ========== INIT ==========
+async function init() {
+  if (useFirebase) {
+    await laadLijsten();
+    laadBoeken();
+    laadBib();
+  } else {
+    lijsten = JSON.parse(JSON.stringify(localLijsten));
+    boeken = JSON.parse(JSON.stringify(localBoeken));
+    renderBoeken(boeken);
+    updateFilterOpties();
+    renderBeheer();
+    laadBib();
+    showToast('Demo modus — koppel Firebase voor schoolgebruik', 4000);
+  }
+}
+
+// ========== FIREBASE LISTENERS ==========
+function laadBoeken() {
+  db.collection('boeken').orderBy('titel').onSnapshot(snap => {
+    boeken = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    filterBoeken();
+  });
+}
+
+async function laadLijsten() {
+  const snap = await db.collection('lijsten').get();
+  if (snap.empty) {
+    // Initialiseer met standaard lijsten
+    for (const [key, val] of Object.entries(localLijsten)) {
+      await db.collection('lijsten').doc(key).set({items: val});
+
+    }
+    lijsten = JSON.parse(JSON.stringify(localLijsten));
+  } else {
+    lijsten = {};
+    snap.docs.forEach(d => { lijsten[d.id] = d.data().items || []; });
+  }
+  updateFilterOpties();
+  renderBeheer();
+}
+
+// ========== RENDER BOEKEN ==========
+function renderBoeken(lijst) {
+  const grid = document.getElementById('book-grid');
+  document.getElementById('result-count').textContent = lijst.length + ' boek' + (lijst.length !== 1 ? 'en' : '');
+  if (!lijst.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><h3>Geen boeken gevonden</h3><p>Pas je filters aan of voeg een nieuw boek toe.</p></div>';
+    return;
+  }
+  grid.innerHTML = lijst.map(b => `
+    <div class="book-card" onclick="toonDetail('${b.id}')">
+      <div class="book-cover">
+        ${b.coverUrl ? `<img src="${b.coverUrl}" alt="${b.titel}" onerror="this.style.display='none'">` : '📖'}
+      </div>
+      <div class="book-info">
+        <div class="stars">${'★'.repeat(b.sterren || 0)}${'☆'.repeat(5-(b.sterren||0))}</div>
+        <div class="book-title">${b.titel}</div>
+        <div class="book-author">${b.auteur || ''}</div>
+        <div class="book-tags">
+          ${(b.types||[]).slice(0,1).map(t=>`<span class="tag type">${t}</span>`).join('')}
+          ${(b.themas||[]).slice(0,1).map(t=>`<span class="tag thema">${t}</span>`).join('')}
+          ${(b.klassen||[]).slice(0,1).map(k=>`<span class="tag klas">${k}</span>`).join('')}
+          ${(b.extra||[]).slice(0,1).map(e=>`<span class="tag extra">${e}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ========== FILTER ==========
+function getFilterChecked(panelId) {
+  return Array.from(document.querySelectorAll(`#${panelId} input[type=checkbox]:checked`)).map(i => i.value);
+}
+
+function toggleFilterPanel(id, btn) {
+  const panel = document.getElementById(id);
+  const isOpen = panel.classList.contains('open');
+  document.querySelectorAll('.filter-panel').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (!isOpen) {
+    // Positioneer panel onder de knop
+    const rect = btn.getBoundingClientRect();
+    panel.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+    panel.style.left = Math.max(8, Math.min(rect.left + window.scrollX, window.innerWidth - 420)) + 'px';
+    panel.style.width = Math.max(280, Math.min(520, window.innerWidth - 20)) + 'px';
+    panel.classList.add('open');
+    btn.classList.add('active');
+  }
+}
+
+function clearPanel(id) {
+  document.querySelectorAll('#' + id + ' input[type=checkbox]').forEach(cb => cb.checked = false);
+  filterBoeken();
+}
+
+// Sluit panels bij klik buiten
+document.addEventListener('click', e => {
+  if (!e.target.closest('.filter-dropdown')) {
+    document.querySelectorAll('.filter-panel').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  }
+});
+
+function updateFilterBtnLabel(id, defaultLabel) {
+  const checked = getFilterChecked(id);
+  const btn = document.getElementById('btn-' + id);
+  if (!btn) return;
+  if (checked.length === 0) {
+    btn.innerHTML = defaultLabel + ' <span>▾</span>';
+  } else {
+    btn.innerHTML = checked.slice(0,2).join(', ') + (checked.length > 2 ? '...' : '') + ` <span class="badge">${checked.length}</span>`;
+  }
+}
+
+function filterBoeken() {
+  const zoek = (document.getElementById('zoek').value||'').toLowerCase();
+  const types = getFilterChecked('f-type');
+  const themas = getFilterChecked('f-thema');
+  const klassen = getFilterChecked('f-klas');
+  const talen = getFilterChecked('f-taal');
+  const leeftijdGroepen = getFilterChecked('f-leeftijd');
+  const avis = getFilterChecked('f-avi');
+  const extras = getFilterChecked('f-extra');
+  const sterrenFilter = getFilterChecked('f-sterren').map(Number);
+
+  // Update knoplabels
+  updateFilterBtnLabel('f-type', 'Type');
+  updateFilterBtnLabel('f-thema', "Thema's");
+  updateFilterBtnLabel('f-klas', 'Klas');
+  updateFilterBtnLabel('f-taal', 'Taal');
+  updateFilterBtnLabel('f-leeftijd', 'Leeftijd');
+  updateFilterBtnLabel('f-avi', 'AVI');
+  updateFilterBtnLabel('f-extra', 'Extra');
+  updateFilterBtnLabel('f-sterren', 'Beoordeling');
+
+  const res = boeken.filter(b => {
+    if (zoek && !`${b.titel} ${b.auteur} ${b.isbn}`.toLowerCase().includes(zoek)) return false;
+    if (types.length && !types.some(t => (b.types||[]).includes(t))) return false;
+    if (themas.length && !themas.some(t => (b.themas||[]).includes(t))) return false;
+    if (klassen.length && !klassen.some(k => (b.klassen||[]).includes(k))) return false;
+    if (talen.length && !talen.includes(b.taal)) return false;
+    if (leeftijdGroepen.length) {
+      // leeftijd is een array van jaren (bv. [10, 11, 12])
+      const leeftijdArr = (Array.isArray(b.leeftijd) ? b.leeftijd : (b.leeftijd ? [b.leeftijd] : [])).map(Number);
+      const filterJaren = leeftijdGroepen.map(Number);
+      const match = filterJaren.some(j => leeftijdArr.includes(j));
+      if (!match) return false;
+    }
+    if (avis.length && !avis.includes(b.avi)) return false;
+    if (extras.length && !extras.some(e => (b.extra||[]).includes(e))) return false;
+    if (sterrenFilter.length && !sterrenFilter.includes(b.sterren||0)) return false;
+    return true;
+  });
+  renderBoeken(res);
+}
+
+function resetFilters() {
+  document.getElementById('zoek').value = '';
+  document.querySelectorAll('.filter-panel input[type=checkbox]').forEach(cb => cb.checked = false);
+  filterBoeken();
+}
+
+function updateFilterOpties() {
+  const sets = {
+    'f-type': lijsten.types||[],
+    'f-thema': lijsten.themas||[],
+    'f-klas': lijsten.klassen||[],
+    'f-taal': lijsten.talen||[],
+    'f-avi': lijsten.avi||[],
+    'f-extra': lijsten.extra||[]
+  };
+  for (const [id, items] of Object.entries(sets)) {
+    const panel = document.getElementById(id);
+    if (!panel) continue;
+    const inner = panel.querySelector('.filter-panel-inner');
+    if (!inner) continue;
+    const checked = getFilterChecked(id);
+    inner.innerHTML = items.map(i =>
+      `<label><input type="checkbox" value="${i}" onchange="filterBoeken()" ${checked.includes(i)?'checked':''}> ${i}</label>`
+    ).join('');
+  }
+}
+
+// ========== DETAIL ==========
+function toonDetail(id) {
+  const b = boeken.find(x => x.id === id);
+  if (!b) return;
+  huidigBoekId = id;
+
+  document.getElementById('detail-titel').textContent = b.titel;
+  const covWrap = document.getElementById('detail-cover-wrap');
+  covWrap.innerHTML = b.coverUrl
+    ? `<img src="${b.coverUrl}" alt="${b.titel}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`
+    : '📖';
+
+  const meta = document.getElementById('detail-meta');
+  const rij = (label, waarde) => waarde ? `<dt>${label}</dt><dd>${waarde}</dd>` : '';
+  const tagsCls = (label, arr, cls) => arr&&arr.length ? `<dt>${label}</dt><dd><div class="detail-tags">${arr.map(t=>`<span class="tag ${cls}">${t}</span>`).join('')}</div></dd>` : '';
+
+  meta.innerHTML = `
+    ${rij('Auteur', b.auteur)}
+    ${rij('Uitgeverij', b.uitgeverij)}
+    ${rij('ISBN', b.isbn)}
+    ${rij('Taal', b.taal)}
+    ${rij('Leeftijd', (Array.isArray(b.leeftijd) ? b.leeftijd : (b.leeftijd ? [b.leeftijd] : [])).map(l=>l+' jaar').join(', '))}
+    ${rij('AVI niveau', b.avi)}
+    ${rij('Beoordeling', b.sterren ? '★'.repeat(b.sterren)+'☆'.repeat(5-b.sterren) : '')}
+    ${tagsCls('Type', b.types, 'type')}
+    ${tagsCls("Thema('s)", b.themas, 'thema')}
+    ${tagsCls('Klas(sen)', b.klassen, 'klas')}
+    ${tagsCls('Extra', b.extra, 'extra')}
+  `;
+
+  const nWrap = document.getElementById('detail-notities-wrap');
+  nWrap.innerHTML = b.notities
+    ? `<div style="background:var(--paper2);border-radius:var(--radius);padding:1rem;border-left:3px solid var(--accent2)"><div style="font-size:12px;color:var(--ink3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Notities leerkracht</div><div style="font-size:14px;color:var(--ink);white-space:pre-wrap">${b.notities}</div></div>`
+    : '';
+
+  document.getElementById('modal-detail').classList.add('open');
+}
+
+// ========== DUPLICAAT CHECK ==========
+let duplicaatNegeren = false;
+let gevondenDuplicaatId = null;
+
+function checkDuplicaat() {
+  if (bewerkModus || duplicaatNegeren) return;
+  const titel = document.getElementById('f-titel').value.trim().toLowerCase();
+  if (titel.length < 3) { document.getElementById('duplicaat-waarschuwing').style.display='none'; return; }
+  const matchFav = boeken.find(b => b.titel.toLowerCase().includes(titel) || titel.includes(b.titel.toLowerCase()));
+  const matchBib = bibBoeken.find(b => b.titel.toLowerCase().includes(titel) || titel.includes(b.titel.toLowerCase()));
+  const warn = document.getElementById('duplicaat-waarschuwing');
+  const naam = document.getElementById('duplicaat-naam');
+  const btnBewerk = warn.querySelector('.btn-primary');
+  if (matchFav) {
+    gevondenDuplicaatId = matchFav.id;
+    naam.innerHTML = '"' + matchFav.titel + '" <span style="background:#f0d9b5;color:#7a4f1e;padding:1px 7px;border-radius:20px;font-size:11px">al in Favorieten</span>';
+    btnBewerk.textContent = '✏️ Bewerk bestaand boek';
+    btnBewerk.onclick = bewerkDuplicaat;
+    warn.style.display = 'block';
+  } else if (matchBib) {
+    gevondenDuplicaatId = null;
+    naam.innerHTML = '"' + matchBib.titel + '" <span style="background:#cce5ff;color:#004085;padding:1px 7px;border-radius:20px;font-size:11px">staat in Schoolbib</span>';
+    btnBewerk.textContent = '🏫 Bekijk in Schoolbib';
+    btnBewerk.onclick = () => { closeModal('modal-form'); showPage('bib'); setTimeout(()=>toonBibDetail(matchBib.id),100); };
+    warn.style.display = 'block';
+  } else {
+    gevondenDuplicaatId = null;
+    warn.style.display = 'none';
+    btnBewerk.textContent = '✏️ Bewerk bestaand boek';
+    btnBewerk.onclick = bewerkDuplicaat;
+  }
+}
+
+function bewerkDuplicaat() {
+  const boek = boeken.find(b => b.id === gevondenDuplicaatId);
+  if (boek) openBoekModal(boek);
+}
+
+function negerDuplicaat() {
+  duplicaatNegeren = true;
+  document.getElementById('duplicaat-waarschuwing').style.display = 'none';
+}
+
+// ========== FORM ==========
+function openBoekModal(boek = null) {
+  bewerkModus = !!boek;
+  coverData = null;
+  gekozenSterren = 0;
+  duplicaatNegeren = false;
+  gevondenDuplicaatId = null;
+  if (document.getElementById("duplicaat-waarschuwing")) document.getElementById("duplicaat-waarschuwing").style.display="none";
+  document.getElementById('form-title').textContent = boek ? 'Boek bewerken' : 'Boek toevoegen';
+
+  // Reset form
+  ['f-isbn','f-titel','f-auteur','f-uitgeverij','f-notities'].forEach(id => document.getElementById(id).value = '');
+  document.querySelectorAll('#ms-leeftijd input').forEach(cb => cb.checked = false);
+  verwijderCover();
+
+  // Multi selects vullen
+  renderMultiSelect('ms-types', lijsten.types||[], boek?.types||[]);
+  renderMultiSelect('ms-themas', lijsten.themas||[], boek?.themas||[]);
+  renderMultiSelect('ms-extra', lijsten.extra||[], boek?.extra||[]);
+  renderMultiSelect('ms-klassen', lijsten.klassen||[], boek?.klassen||[]);
+
+  // Dropdowns
+  const taalSel = document.getElementById('f-taal-form');
+  taalSel.innerHTML = '<option value="">-- kies taal --</option>' + (lijsten.talen||[]).map(t=>`<option>${t}</option>`).join('');
+  const aviSel = document.getElementById('f-avi-form');
+  aviSel.innerHTML = '<option value="">-- kies niveau --</option>' + (lijsten.avi||[]).map(a=>`<option>${a}</option>`).join('');
+
+  if (boek) {
+    document.getElementById('f-isbn').value = boek.isbn||'';
+    document.getElementById('f-titel').value = boek.titel||'';
+    document.getElementById('f-auteur').value = boek.auteur||'';
+    document.getElementById('f-uitgeverij').value = boek.uitgeverij||'';
+    document.getElementById('f-notities').value = boek.notities||'';
+    const leeftijdArr = Array.isArray(boek.leeftijd) ? boek.leeftijd : (boek.leeftijd ? [boek.leeftijd] : []);
+    document.querySelectorAll('#ms-leeftijd input').forEach(cb => { cb.checked = leeftijdArr.map(String).includes(cb.value); });
+    taalSel.value = boek.taal||'';
+    aviSel.value = boek.avi||'';
+    setSterren(boek.sterren||0);
+    if (boek.coverUrl) {
+      setCoverImage(boek.coverUrl);
+    }
+  } else {
+    setSterren(0);
+  }
+
+  closeModal('modal-detail');
+  document.getElementById('modal-form').classList.add('open');
+}
+
+function renderMultiSelect(containerId, items, selected) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map(item => `
+    <label>
+      <input type="checkbox" value="${item}" ${selected.includes(item)?'checked':''}> ${item}
+    </label>
+  `).join('');
+}
+
+function getChecked(containerId) {
+  return Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(i => i.value);
+}
+
+function setSterren(n) {
+  gekozenSterren = n;
+  document.querySelectorAll('.star').forEach(s => {
+    s.style.color = parseInt(s.dataset.v) <= n ? 'var(--accent2)' : 'var(--paper3)';
+  });
+  const labels = ['','Slecht','Matig','Goed','Heel goed','Uitstekend'];
+  document.getElementById('sterren-label').textContent = n ? labels[n] : '';
+}
+
+async function haalCoverOp() {
+  const isbn = document.getElementById('f-isbn').value.replace(/[^0-9X]/g,'');
+  if (!isbn) { showToast('Vul eerst een ISBN in'); return; }
+  const btn = document.querySelector('#modal-form .isbn-row .btn') || document.querySelector('.isbn-row .btn');
+  btn.textContent = '⏳ Ophalen...'; btn.disabled = true;
+  try {
+    // Google Books API - veel betere dekking voor Nederlandstalige boeken
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    const data = await res.json();
+    if (data.totalItems > 0) {
+      const info = data.items[0].volumeInfo;
+      // Titel
+      if (info.title && !document.getElementById('f-titel').value)
+        document.getElementById('f-titel').value = info.title;
+      // Auteur
+      if (info.authors && info.authors.length && !document.getElementById('f-auteur').value)
+        document.getElementById('f-auteur').value = info.authors.join(', ');
+      // Uitgeverij
+      if (info.publisher && !document.getElementById('f-uitgeverij').value)
+        document.getElementById('f-uitgeverij').value = info.publisher;
+      // Taal
+      if (info.language) {
+        const taalMap = {'nl':'Nederlands','en':'Engels','fr':'Frans','de':'Duits','es':'Spaans'};
+        const taalNaam = taalMap[info.language];
+        if (taalNaam) {
+          const taalSel = document.getElementById('f-taal-form');
+          if ([...taalSel.options].some(o=>o.value===taalNaam)) taalSel.value = taalNaam;
+        }
+      }
+      // Cover - fix http->https en verwijder edge=curl parameter
+      let coverUrl = info.imageLinks?.extraLarge || info.imageLinks?.large || info.imageLinks?.medium || info.imageLinks?.thumbnail || '';
+      if (coverUrl) {
+        coverUrl = coverUrl.replace('http://','https://').replace('&edge=curl','');
+        // Gebruik zoom=3 voor betere kwaliteit
+        coverUrl = coverUrl.replace('zoom=1','zoom=3');
+      }
+      // Altijd ook Open Library proberen als fallback
+      const olUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+      const prev = document.getElementById('cover-preview');
+      setCoverImage(coverUrl || olUrl);
+      if (coverUrl) {
+        document.getElementById('cover-preview').onerror = () => setCoverImage(olUrl);
+      }
+      showToast('✅ Boekinfo opgehaald!');
+    } else {
+      // Fallback: zoek op titel via Google Books (voor boeken zonder ISBN-match)
+      const titleRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1`);
+      // Probeer Open Library cover als laatste redmiddel
+      const olCoverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+      setCoverImage(olCoverUrl);
+      showToast('Boek niet gevonden in database — cover wordt geprobeerd, vul info manueel aan');
+    }
+  } catch(e) {
+    showToast('Fout bij ophalen: ' + e.message);
+  }
+  btn.textContent = 'Boek ophalen'; btn.disabled = false;
+}
+
+function verkleinAfbeelding(src, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const MAX = 600; // max breedte/hoogte in pixels
+    let w = img.width, h = img.height;
+    if (w > MAX || h > MAX) {
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else { w = Math.round(w * MAX / h); h = MAX; }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', 0.75)); // ~75% kwaliteit
+  };
+  img.src = src;
+}
+
+function setCoverImage(src) {
+  // Enkel verkleinen als het base64 is (upload), niet als het een URL is
+  if (src.startsWith('data:')) {
+    verkleinAfbeelding(src, (verkleind) => {
+      coverData = verkleind;
+      const prev = document.getElementById('cover-preview');
+      prev.src = verkleind;
+      document.getElementById('cover-dropzone').classList.add('has-cover');
+    });
+  } else {
+    coverData = src;
+    const prev = document.getElementById('cover-preview');
+    prev.src = src;
+    document.getElementById('cover-dropzone').classList.add('has-cover');
+  }
+}
+
+function verwijderCover() {
+  coverData = null;
+  const prev = document.getElementById('cover-preview');
+  prev.src = '';
+  document.getElementById('cover-dropzone').classList.remove('has-cover');
+  document.getElementById('coverFileInput').value = '';
+}
+
+function handleCoverUpload(e) {
+  const file = e.target.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = ev => setCoverImage(ev.target.result);
+  reader.readAsDataURL(file);
+}
+
+function handleDropzoneClick(e) {
+  if (e.target.closest('.cover-overlay')) return;
+  document.getElementById('coverFileInput').click();
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('cover-dropzone').classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+  document.getElementById('cover-dropzone').classList.remove('dragover');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('cover-dropzone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = ev => setCoverImage(ev.target.result);
+    reader.readAsDataURL(file);
+    return;
+  }
+  // Probeer URL uit dataTransfer (bv. slepen vanuit browser)
+  const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+  if (url && url.match(/\.(jpg|jpeg|png|gif|webp)/i)) {
+    setCoverImage(url);
+  }
+}
+
+function zoekOpGoogleImages() {
+  const titel = document.getElementById('f-titel').value.trim();
+  const auteur = document.getElementById('f-auteur').value.trim();
+  const zoekterm = encodeURIComponent((titel + ' ' + auteur + ' boek cover').trim());
+  window.open('https://www.google.com/search?tbm=isch&q=' + zoekterm, '_blank');
+}
+
+// Ctrl+V paste luisteraar op document niveau (actief als form open is)
+document.addEventListener('paste', function(e) {
+  const form = document.getElementById('modal-form');
+  const bibForm = document.getElementById('modal-bib-form');
+  if (form.classList.contains('open')) {
+    // catalogus form handled below
+  } else if (bibForm && bibForm.classList.contains('open')) {
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        const reader = new FileReader();
+        reader.onload = ev => setBibCoverImage(ev.target.result);
+        reader.readAsDataURL(file);
+        showToast('Cover geplakt! ✅');
+        return;
+      }
+    }
+    return;
+  }
+  if (!form.classList.contains('open')) return;
+  // Afbeelding geplakt?
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      const reader = new FileReader();
+      reader.onload = ev => setCoverImage(ev.target.result);
+      reader.readAsDataURL(file);
+      showToast('Cover geplakt! ✅');
+      return;
+    }
+  }
+});
+
+async function slaBoekOp(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Opslaan...';
+
+  const data = {
+    titel: document.getElementById('f-titel').value.trim(),
+    auteur: document.getElementById('f-auteur').value.trim(),
+    uitgeverij: document.getElementById('f-uitgeverij').value.trim(),
+    isbn: document.getElementById('f-isbn').value.trim(),
+    taal: document.getElementById('f-taal-form').value,
+    leeftijd: getChecked('ms-leeftijd').map(Number),
+    avi: document.getElementById('f-avi-form').value,
+    sterren: gekozenSterren,
+    types: getChecked('ms-types'),
+    themas: getChecked('ms-themas'),
+    extra: getChecked('ms-extra'),
+    klassen: getChecked('ms-klassen'),
+    notities: document.getElementById('f-notities').value.trim(),
+    coverUrl: coverData || '',
+    aangepastOp: new Date().toISOString()
+  };
+
+  try {
+    if (useFirebase) {
+      if (bewerkModus && huidigBoekId) {
+        await db.collection('boeken').doc(huidigBoekId).update(data);
+      } else {
+        await db.collection('boeken').add(data);
+      }
+    } else {
+      if (bewerkModus && huidigBoekId) {
+        const idx = localBoeken.findIndex(b => b.id === huidigBoekId);
+        if (idx >= 0) localBoeken[idx] = {id: huidigBoekId, ...data};
+        boeken = JSON.parse(JSON.stringify(localBoeken));
+      } else {
+        const nieuw = {id: 'demo'+Date.now(), ...data};
+        localBoeken.push(nieuw);
+        boeken = JSON.parse(JSON.stringify(localBoeken));
+      }
+      filterBoeken();
+      updateFilterOpties();
+    }
+    showToast(bewerkModus ? 'Boek bijgewerkt!' : 'Boek toegevoegd!');
+    closeModal('modal-form');
+  } catch(err) {
+    showToast('Fout: ' + err.message);
+  }
+  btn.disabled = false;
+  btn.innerHTML = '💾 Opslaan';
+}
+
+function bewerkHuidigBoek() {
+  const boek = boeken.find(b => b.id === huidigBoekId);
+  if (boek) openBoekModal(boek);
+}
+
+async function verwijderHuidigBoek() {
+  if (!confirm('Boek naar de prullenbak verplaatsen?')) return;
+  const boek = boeken.find(b => b.id === huidigBoekId);
+  if (!boek) return;
+  const verwijderd = {...boek, verwijderdOp: new Date().toISOString()};
+  if (useFirebase) {
+    await db.collection('prullenbak').doc(huidigBoekId).set(verwijderd);
+    await db.collection('boeken').doc(huidigBoekId).delete();
+  } else {
+    localPrullenbak.push(verwijderd);
+    localBoeken = localBoeken.filter(b => b.id !== huidigBoekId);
+    boeken = JSON.parse(JSON.stringify(localBoeken));
+    filterBoeken();
+  }
+  closeModal('modal-detail');
+  showToast('Boek naar prullenbak verplaatst');
+}
+
+function bewerkItem(key, oudeWaarde, btn) {
+  const item = btn.closest('.beheer-item');
+  const span = item.querySelector('span[style="flex:1"]');
+  const origineel = span.textContent;
+  // Vervang span door input
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = origineel;
+  input.style.cssText = 'flex:1;padding:3px 8px;border:1px solid var(--accent2);border-radius:6px;font-family:var(--font-body);font-size:13px';
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+  // Verberg edit knopje, toon opslaan
+  btn.textContent = '✅';
+  btn.title = 'Opslaan';
+  btn.onclick = () => slaItemOp(key, oudeWaarde, input.value.trim(), btn, input);
+  input.onkeydown = e => {
+    if (e.key === 'Enter') slaItemOp(key, oudeWaarde, input.value.trim(), btn, input);
+    if (e.key === 'Escape') { renderBeheer(); }
+  };
+}
+
+async function slaItemOp(key, oudeWaarde, nieuweWaarde, btn, input) {
+  if (!nieuweWaarde || nieuweWaarde === oudeWaarde) { renderBeheer(); return; }
+  if ((lijsten[key]||[]).includes(nieuweWaarde)) { showToast('Die naam bestaat al!'); return; }
+  const idx = (lijsten[key]||[]).indexOf(oudeWaarde);
+  if (idx < 0) return;
+  // Vraag of bestaande boeken ook bijgewerkt moeten worden
+  const veldMap = {types:'types', themas:'themas', klassen:'klassen', talen:'taal', avi:'avi'};
+  const veld = veldMap[key];
+  const aantalBoeken = boeken.filter(b => {
+    if (Array.isArray(b[veld])) return (b[veld]||[]).includes(oudeWaarde);
+    return b[veld] === oudeWaarde;
+  }).length;
+  let updateBoeken = false;
+  if (aantalBoeken > 0) {
+    updateBoeken = confirm(`${aantalBoeken} boek(en) gebruiken "${oudeWaarde}". Ook deze bijwerken naar "${nieuweWaarde}"?`);
+  }
+  lijsten[key][idx] = nieuweWaarde;
+  if (useFirebase) {
+    await db.collection('lijsten').doc(key).set({items: lijsten[key]});
+    if (updateBoeken) {
+      const batch = db.batch();
+      boeken.forEach(b => {
+        let gewijzigd = false;
+        const data = {};
+        if (Array.isArray(b[veld]) && (b[veld]||[]).includes(oudeWaarde)) {
+          data[veld] = b[veld].map(v => v === oudeWaarde ? nieuweWaarde : v);
+          gewijzigd = true;
+        } else if (b[veld] === oudeWaarde) {
+          data[veld] = nieuweWaarde;
+          gewijzigd = true;
+        }
+        if (gewijzigd) batch.update(db.collection('boeken').doc(b.id), data);
+      });
+      await batch.commit();
+    }
+  } else {
+    localLijsten[key] = lijsten[key];
+    if (updateBoeken) {
+      localBoeken = localBoeken.map(b => {
+        if (Array.isArray(b[veld]) && (b[veld]||[]).includes(oudeWaarde)) {
+          return {...b, [veld]: b[veld].map(v => v === oudeWaarde ? nieuweWaarde : v)};
+        } else if (b[veld] === oudeWaarde) {
+          return {...b, [veld]: nieuweWaarde};
+        }
+        return b;
+      });
+      boeken = JSON.parse(JSON.stringify(localBoeken));
+      filterBoeken();
+    }
+  }
+  renderBeheer();
+  updateFilterOpties();
+  showToast(`"${oudeWaarde}" hernoemd naar "${nieuweWaarde}"${updateBoeken ? ' (boeken bijgewerkt)' : ''}`);
+}
+
+async function sorteerAlfabetisch(key) {
+  lijsten[key] = [...(lijsten[key]||[])].sort((a,b) => a.localeCompare(b, 'nl'));
+  if (useFirebase) await db.collection('lijsten').doc(key).set({items: lijsten[key]});
+  else { localLijsten[key] = lijsten[key]; }
+  renderBeheer();
+  updateFilterOpties();
+  showToast('Alfabetisch gesorteerd!');
+}
+
+// ========== SAMENVOEGEN ==========
+let mergeKey = null;
+let mergeBron = null;
+
+function openSamenvoegen(key, bron) {
+  mergeKey = key;
+  mergeBron = bron;
+  document.getElementById('merge-bron-label').textContent = '"' + bron + '"';
+  document.getElementById('merge-bron-label2').textContent = '"' + bron + '"';
+  const doel = document.getElementById('merge-doel');
+  const opties = (lijsten[key]||[]).filter(i => i !== bron);
+  doel.innerHTML = opties.map(i => `<option value="${i}">${i}</option>`).join('');
+  document.getElementById('modal-samenvoegen').classList.add('open');
+}
+
+async function bevestigSamenvoegen() {
+  const doelWaarde = document.getElementById('merge-doel').value;
+  if (!doelWaarde || !mergeBron || !mergeKey) return;
+  const veldMap = {types:'types', themas:'themas', klassen:'klassen', talen:'taal', avi:'avi', extra:'extra'};
+  const veld = veldMap[mergeKey];
+  // Bijwerken boeken
+  if (useFirebase) {
+    const batch = db.batch();
+    boeken.forEach(b => {
+      let gewijzigd = false;
+      const data = {};
+      if (Array.isArray(b[veld]) && (b[veld]||[]).includes(mergeBron)) {
+        const nieuw = [...new Set(b[veld].map(v => v === mergeBron ? doelWaarde : v))];
+        data[veld] = nieuw;
+        gewijzigd = true;
+      } else if (b[veld] === mergeBron) {
+        data[veld] = doelWaarde;
+        gewijzigd = true;
+      }
+      if (gewijzigd) batch.update(db.collection('boeken').doc(b.id), data);
+    });
+    await batch.commit();
+    // Verwijder bron uit lijst
+    lijsten[mergeKey] = (lijsten[mergeKey]||[]).filter(i => i !== mergeBron);
+    await db.collection('lijsten').doc(mergeKey).set({items: lijsten[mergeKey]});
+  } else {
+    localBoeken = localBoeken.map(b => {
+      if (Array.isArray(b[veld]) && (b[veld]||[]).includes(mergeBron)) {
+        return {...b, [veld]: [...new Set(b[veld].map(v => v === mergeBron ? doelWaarde : v))]};
+      } else if (b[veld] === mergeBron) {
+        return {...b, [veld]: doelWaarde};
+      }
+      return b;
+    });
+    boeken = JSON.parse(JSON.stringify(localBoeken));
+    lijsten[mergeKey] = (lijsten[mergeKey]||[]).filter(i => i !== mergeBron);
+    localLijsten[mergeKey] = lijsten[mergeKey];
+    filterBoeken();
+  }
+  closeModal('modal-samenvoegen');
+  renderBeheer();
+  updateFilterOpties();
+  showToast(`"${mergeBron}" samengevoegd in "${doelWaarde}" ✅`);
+}
+
+// ========== BEHEER ==========
+function renderBeheer() {
+  const namen = {
+    types: 'Types boek',
+    themas: "Thema's",
+    klassen: 'Klassen',
+    talen: 'Talen',
+    avi: 'AVI niveaus',
+    extra: 'Extra',
+    locaties: 'Locaties (Bib)'
+  };
+  const grid = document.getElementById('beheer-grid');
+  grid.innerHTML = Object.entries(namen).map(([key, naam]) => `
+    <div class="beheer-card">
+      <h3 style="display:flex;align-items:center;justify-content:space-between">
+        <span>${naam}</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <small style="font-size:11px;color:var(--ink3);font-family:var(--font-body);font-weight:400">sleep om te herordenen</small>
+          <button class="btn btn-secondary btn-sm" onclick="sorteerAlfabetisch('${key}')" title="Alfabetisch sorteren">A→Z</button>
+        </div>
+      </h3>
+      <div id="lijst-${key}">
+        ${(lijsten[key]||[]).map((item,i) => `
+          <div class="beheer-item" draggable="true"
+            ondragstart="dragStart(event,'${key}',${i})"
+            ondragover="dragOver(event)"
+            ondragleave="dragLeave(event)"
+            ondrop="dragDrop(event,'${key}',${i})">
+            <span class="drag-handle" title="Sleep om te herordenen">⠿</span>
+            <span style="flex:1">${item}</span>
+            <button class="btn btn-secondary btn-sm" onclick="bewerkItem('${key}','${item.replace(/'/g,"\'")}',this)" title="Bewerken">✏️</button>
+            <button class="btn btn-secondary btn-sm" onclick="openSamenvoegen('${key}','${item.replace(/'/g,"\'")}')">⇒</button>
+            <button class="btn btn-secondary btn-sm" onclick="verwijderItem('${key}','${item.replace(/'/g,"\'")}')">✕</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="add-row">
+        <input type="text" id="nieuw-${key}" placeholder="Nieuw item..." onkeydown="if(event.key==='Enter'){event.preventDefault();voegToe('${key}')}">
+        <button class="btn btn-primary btn-sm" onclick="voegToe('${key}')">+</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Drag & Drop state
+let dragSrcKey = null;
+let dragSrcIdx = null;
+
+function dragStart(e, key, idx) {
+  dragSrcKey = key; dragSrcIdx = idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+async function dragDrop(e, key, toIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrcKey !== key || dragSrcIdx === toIdx) return;
+  const arr = [...(lijsten[key]||[])];
+  const [moved] = arr.splice(dragSrcIdx, 1);
+  arr.splice(toIdx, 0, moved);
+  lijsten[key] = arr;
+  if (useFirebase) await db.collection('lijsten').doc(key).set({items: arr});
+  else { localLijsten[key] = arr; }
+  renderBeheer();
+  updateFilterOpties();
+  showToast('Volgorde opgeslagen!');
+}
+
+async function voegToe(key) {
+  const inp = document.getElementById('nieuw-'+key);
+  const val = inp.value.trim();
+  if (!val || (lijsten[key]||[]).includes(val)) { showToast('Al aanwezig of leeg'); return; }
+  lijsten[key] = [...(lijsten[key]||[]), val];
+  if (useFirebase) await db.collection('lijsten').doc(key).set({items: lijsten[key]});
+  else { localLijsten[key] = lijsten[key]; }
+  inp.value = '';
+  renderBeheer();
+  updateFilterOpties();
+  showToast(`"${val}" toegevoegd aan ${key}`);
+}
+
+async function verwijderItem(key, val) {
+  if (!confirm(`"${val}" verwijderen?`)) return;
+  lijsten[key] = (lijsten[key]||[]).filter(i => i !== val);
+  if (useFirebase) await db.collection('lijsten').doc(key).set({items: lijsten[key]});
+  else { localLijsten[key] = lijsten[key]; }
+  renderBeheer();
+  updateFilterOpties();
+  showToast(`"${val}" verwijderd`);
+}
+
+// ========== EXPORT ==========
+function exportExcel() {
+  if (!boeken.length) { showToast('Geen boeken om te exporteren'); return; }
+  const rows = boeken.map(b => ({
+    Titel: b.titel, Auteur: b.auteur, Uitgeverij: b.uitgeverij, ISBN: b.isbn,
+    Type: (b.types||[]).join(', '),
+    Themas: (b.themas||[]).join(', '), Klassen: (b.klassen||[]).join(', '),
+    Extra: (b.extra||[]).join(', '), Taal: b.taal, Leeftijd: (Array.isArray(b.leeftijd)?b.leeftijd:(b.leeftijd?[b.leeftijd]:[])).join(', '), AVI: b.avi, Sterren: b.sterren,
+    Notities: b.notities
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Boeken');
+  XLSX.writeFile(wb, 'favorieten.xlsx');
+  showToast('Excel gedownload!');
+}
+
+function exportPDF() {
+  if (!boeken.length) { showToast('Geen boeken om te exporteren'); return; }
+  const win = window.open('', '_blank');
+
+  const rijen = boeken.map(b => {
+    const cover = b.coverUrl
+      ? `<img src="${b.coverUrl}" style="width:70px;height:95px;object-fit:cover;border-radius:4px;border:1px solid #e8e0d0" onerror="this.style.display='none'">`
+      : `<div style="width:70px;height:95px;background:#f2ede3;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px">📖</div>`;
+    const sterren = '★'.repeat(b.sterren||0) + '☆'.repeat(5-(b.sterren||0));
+    const tagClr = (val, bg, clr) => val ? `<span style="display:inline-block;background:${bg};color:${clr};border-radius:20px;padding:1px 7px;font-size:10px;margin:1px">${val}</span>` : '';
+    const tagsType  = (arr) => (arr||[]).map(v => tagClr(v,'#e2d9f3','#4a1a8a')).join('');
+    const tagsThema = (arr) => (arr||[]).map(v => tagClr(v,'#fde8d0','#8a3a00')).join('');
+    const tagsKlas  = (arr) => (arr||[]).map(v => tagClr(v,'#cce5ff','#004085')).join('');
+    const tagsExtra = (arr) => (arr||[]).map(v => tagClr(v,'#fce4ec','#880e4f')).join('');
+    return `
+    <tr>
+      <td style="width:80px;padding:10px 8px;vertical-align:top">${cover}</td>
+      <td>
+        <div class="boek-titel">${b.titel||''}</div>
+        <div class="boek-auteur">${b.auteur||''}${b.uitgeverij?' · <em>'+b.uitgeverij+'</em>':''}</div>
+        <div style="margin-bottom:4px">${tagsType(b.types)}</div>
+        <div>${tagsThema(b.themas)}</div>
+      </td>
+      <td>
+        <div>${tagsKlas(b.klassen)}</div>
+        ${b.taal ? `<div style="margin-top:5px"><span class="info-label">Taal</span><div>${b.taal}</div></div>` : ''}
+        ${(Array.isArray(b.leeftijd)?b.leeftijd:(b.leeftijd?[b.leeftijd]:[])).length ? `<div style="margin-top:5px"><span class="info-label">Leeftijd</span><div>${(Array.isArray(b.leeftijd)?b.leeftijd:[b.leeftijd]).join(', ')} jaar</div></div>` : ''}
+        ${b.avi ? `<div style="margin-top:5px"><span class="info-label">AVI</span><div>${b.avi}</div></div>` : ''}
+      </td>
+      <td><div class="sterren">${sterren}</div></td>
+      <td>${b.notities ? `<div class="notitie">${b.notities}</div>` : ''}</td>
+    </tr>`;
+  }).join('');
+
+  win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Schoolbib & Favorieten</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:#faf7f2;color:#1a1209;font-size:13px;padding:2rem}
+  h1{font-family:'Fraunces',serif;font-size:1.8rem;color:#1a1209;margin-bottom:4px}
+  .sub{color:#9c8060;margin-bottom:1.5rem;font-size:13px;border-bottom:2px solid #1a1209;padding-bottom:0.75rem}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(26,18,9,0.08)}
+  th{background:#1a1209;color:#faf7f2;padding:10px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  td{padding:10px 12px;vertical-align:top;border-bottom:1px solid #e8e0d0}
+  tr:last-child td{border-bottom:none}
+  tr:nth-child(even) td{background:#faf7f2}
+  .boek-titel{font-family:'Fraunces',serif;font-weight:600;font-size:14px;margin-bottom:2px}
+  .boek-auteur{color:#5c4a2a;font-size:12px;margin-bottom:6px}
+  .tag{display:inline-block;border-radius:20px;padding:2px 8px;font-size:10px;margin:1px;font-weight:500}
+  .sterren{color:#c4873a;font-size:14px}
+  .notitie{background:#faf7f2;border-left:3px solid #c4873a;padding:7px 10px;border-radius:0 6px 6px 0;font-size:12px;color:#5c4a2a;white-space:pre-wrap;line-height:1.5}
+  .info-label{font-size:10px;color:#9c8060;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;font-weight:600}
+  @media print{
+    body{padding:1rem;background:#fff}
+    table{box-shadow:none}
+    tr{page-break-inside:avoid}
+    @page{margin:1.5cm}
+  }
+</style>
+</head><body>
+<h1>📚 Schoolbib & Favorieten</h1>
+<div class="sub">Geëxporteerd op ${new Date().toLocaleDateString('nl-BE')} &nbsp;·&nbsp; ${boeken.length} boek${boeken.length!==1?'en':''}</div>
+<table>
+  <thead>
+    <tr>
+      <th style="width:85px">Cover</th>
+      <th>Boek</th>
+      <th style="width:140px">Klas &amp; Info</th>
+      <th style="width:100px">Beoordeling</th>
+      <th style="width:220px">Notities leerkracht</th>
+    </tr>
+  </thead>
+  <tbody>${rijen}</tbody>
+</table>
+</body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 1200);
+}
+
+// ========== UTILS ==========
+function showPage(naam) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+naam).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-'+naam).classList.add('active');
+}
+
+// Wachtwoord systeem
+let wwCallback = null;
+function vraagWachtwoord(titel, uitleg, callback) {
+  document.getElementById('ww-titel').textContent = titel;
+  document.getElementById('ww-uitleg').textContent = uitleg;
+  document.getElementById('ww-input').value = '';
+  document.getElementById('ww-fout').style.display = 'none';
+  wwCallback = callback;
+  document.getElementById('modal-wachtwoord').classList.add('open');
+  setTimeout(() => document.getElementById('ww-input').focus(), 100);
+}
+
+function controleerWachtwoord() {
+  const inp = document.getElementById('ww-input').value;
+  if (inp === '9050') {
+    closeModal('modal-wachtwoord');
+    if (wwCallback) { wwCallback(); wwCallback = null; }
+  } else {
+    document.getElementById('ww-fout').style.display = 'block';
+    document.getElementById('ww-input').value = '';
+    document.getElementById('ww-input').focus();
+  }
+}
+
+function openBeheer() {
+  vraagWachtwoord('🔒 Beheer', 'Voer het wachtwoord in om het beheer te openen.', () => {
+    showPage('beheer');
+  });
+}
+
+function openPrullenbak() {
+  showPage('prullenbak');
+  laadPrullenbak();
+}
+
+// Prullenbak
+async function laadPrullenbak() {
+  let items = [];
+  if (useFirebase) {
+    const snap = await db.collection('prullenbak').orderBy('verwijderdOp','desc').get();
+    items = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  } else {
+    items = JSON.parse(JSON.stringify(localPrullenbak));
+  }
+  renderPrullenbak(items);
+}
+
+function renderPrullenbak(items) {
+  const grid = document.getElementById('prullenbak-grid');
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><h3>Prullenbak is leeg</h3><p>Verwijderde boeken verschijnen hier.</p></div>';
+    return;
+  }
+  grid.innerHTML = items.map(b => `
+    <div class="book-card">
+      <div class="book-cover">
+        ${b.coverUrl ? `<img src="${b.coverUrl}" alt="${b.titel}" onerror="this.style.display='none'">` : '📖'}
+      </div>
+      <div class="book-info">
+        <div class="book-title">${b.titel}</div>
+        <div class="book-author">${b.auteur||''}</div>
+        <div style="font-size:11px;color:var(--ink3);margin:4px 0">Verwijderd op ${new Date(b.verwijderdOp).toLocaleDateString('nl-BE')}</div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn btn-primary btn-sm" onclick="herstelBoek('${b.id}')">↩ Herstellen</button>
+          <button class="btn btn-danger btn-sm" onclick="permanentVerwijderen('${b.id}')">🗑 Wis</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function herstelBoek(id) {
+  if (useFirebase) {
+    const doc = await db.collection('prullenbak').doc(id).get();
+    if (!doc.exists) return;
+    const data = doc.data();
+    delete data.verwijderdOp;
+    await db.collection('boeken').doc(id).set(data);
+    await db.collection('prullenbak').doc(id).delete();
+  } else {
+    const idx = localPrullenbak.findIndex(b => b.id === id);
+    if (idx < 0) return;
+    const boek = {...localPrullenbak[idx]};
+    delete boek.verwijderdOp;
+    localBoeken.push(boek);
+    localPrullenbak.splice(idx, 1);
+    boeken = JSON.parse(JSON.stringify(localBoeken));
+    filterBoeken();
+  }
+  showToast('Boek hersteld! ✅');
+  laadPrullenbak();
+}
+
+function permanentVerwijderen(id) {
+  vraagWachtwoord('🗑 Permanent verwijderen', 'Dit kan niet ongedaan gemaakt worden. Voer het wachtwoord in om te bevestigen.', async () => {
+    if (useFirebase) {
+      await db.collection('prullenbak').doc(id).delete();
+    } else {
+      localPrullenbak = localPrullenbak.filter(b => b.id !== id);
+    }
+    showToast('Boek permanent verwijderd');
+    laadPrullenbak();
+  });
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function showToast(msg, duur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duur);
+}
+
+// Sluit modal bij klik buiten
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+});
+
+// Escape toets sluit open modals
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+init();
+</script>
+</body>
+</html>
