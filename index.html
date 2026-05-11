@@ -2475,21 +2475,50 @@ async function herstelBoek(id) {
     const doc = await db.collection('prullenbak').doc(id).get();
     if (!doc.exists) return;
     const data = doc.data();
+    const bron = data.verwijderdUit || 'favorieten'; // 'bib' of 'favorieten'
     delete data.verwijderdOp;
-    await db.collection('boeken').doc(id).set(data);
+    delete data.verwijderdUit;
+    // Herstel naar de juiste collectie
+    const collectie = bron === 'bib' ? 'bib' : 'boeken';
+    await db.collection(collectie).doc(id).set(data);
     await db.collection('prullenbak').doc(id).delete();
+    showToast(`Boek hersteld naar ${bron === 'bib' ? 'Schoolbib' : 'Favorieten'}! ✅`);
   } else {
     const idx = localPrullenbak.findIndex(b => b.id === id);
     if (idx < 0) return;
     const boek = {...localPrullenbak[idx]};
+    const bron = boek.verwijderdUit || 'favorieten';
     delete boek.verwijderdOp;
-    localBoeken.push(boek);
+    delete boek.verwijderdUit;
+    if (bron === 'bib') {
+      localBibBoeken.push(boek);
+      bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+      filterBib();
+    } else {
+      localBoeken.push(boek);
+      boeken = JSON.parse(JSON.stringify(localBoeken));
+      filterBoeken();
+    }
     localPrullenbak.splice(idx, 1);
-    boeken = JSON.parse(JSON.stringify(localBoeken));
-    filterBoeken();
+    showToast(`Boek hersteld naar ${bron === 'bib' ? 'Schoolbib' : 'Favorieten'}! ✅`);
   }
-  showToast('Boek hersteld! ✅');
+  // Ververs beide prullenbakken
   laadPrullenbak();
+  // Ververs beheer prullenbak als die zichtbaar is
+  const beheerTab = document.getElementById('beheer-tab-prullenbak');
+  if (beheerTab && beheerTab.classList.contains('active')) {
+    laadBeheerPrullenbak();
+  } else {
+    // Roep toch op zodat grid bijgewerkt wordt als je ernaar switcht
+    laadBeheerPrullenbak();
+  }
+  // Ververs de juiste pagina
+  if (useFirebase) {
+    // Firebase listeners updaten automatisch via onSnapshot
+  } else {
+    filterBoeken();
+    filterBib();
+  }
 }
 
 
