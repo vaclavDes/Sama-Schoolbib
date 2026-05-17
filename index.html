@@ -146,6 +146,9 @@
   .page-header h2{font-size:1.6rem;color:var(--ink)}
 
   .tab-bar{display:flex;gap:4px;margin-bottom:1.5rem;border-bottom:2px solid var(--paper3);padding-bottom:0}
+  .beheer-tab-btn{background:none;border:none;padding:10px 20px;font-family:var(--font-body);font-size:14px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+  .beheer-tab-btn:hover{color:var(--ink)}
+  .beheer-tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
   .tab-btn{background:none;border:none;padding:10px 20px;font-family:var(--font-body);font-size:14px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
   .tab-btn:hover{color:var(--ink)}
   .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
@@ -339,9 +342,10 @@
   <!-- Bulk uitlenen balk -->
   <div style="background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--radius);padding:8px 14px;margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px">
     <span style="color:var(--ink2)">💡 <strong>Bulk uitlenen:</strong> vink boeken aan via het vakje linksboven op de cover</span>
-    <div id="bib-bulk-bar" style="display:none;align-items:center;gap:8px">
+    <div id="bib-bulk-bar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
       <span id="bulk-count" style="color:var(--accent);font-weight:600"></span>
-      <button class="btn btn-primary btn-sm" onclick="bulkUitlenen()">📤 Uitlenen</button>
+      <button class="btn btn-primary btn-sm" id="bulk-uitleen-btn" onclick="bulkUitlenen()">📤 Uitlenen</button>
+      <button class="btn btn-secondary btn-sm" id="bulk-retour-btn" onclick="bulkRetour()">↩ Terugbrengen</button>
       <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.bib-selecteer').forEach(c=>{c.checked=false});updateBulkBar()">✕ Wis selectie</button>
     </div>
   </div>
@@ -385,13 +389,33 @@
     <label>Aantal exemplaren</label>
     <input type="number" id="naar-bib-aantal" min="1" value="1" placeholder="1">
   </div>
-  <div style="margin-bottom:1.5rem">
+  <div style="margin-bottom:1rem">
     <label>Locatie(s) op school</label>
     <div class="multi-select" id="naar-bib-ms-locaties"></div>
+  </div>
+  <div style="margin-bottom:1.5rem">
+    <label>Eigenaarschap</label>
+    <select id="naar-bib-eigenaar" style="font-size:14px"></select>
   </div>
   <div style="display:flex;gap:8px;justify-content:flex-end">
     <button class="btn btn-secondary" onclick="closeModal('modal-naar-bib')">Annuleren</button>
     <button class="btn btn-primary" onclick="bevestigNaarBib()">🏫 Toevoegen</button>
+  </div>
+</div>
+</div>
+
+<!-- BULK RETOUR MODAL -->
+<div class="modal-bg" id="modal-bulk-retour">
+<div class="modal" style="max-width:480px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 style="margin:0">↩ Terugbrengen</h2>
+    <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-bulk-retour')">✕</button>
+  </div>
+  <p style="font-size:14px;color:var(--ink2);margin-bottom:1rem">Selecteer per boek wie het exemplaar terugbrengt:</p>
+  <div id="bulk-retour-lijst" style="max-height:400px;overflow-y:auto;margin-bottom:1.5rem"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn btn-secondary" onclick="closeModal('modal-bulk-retour')">Annuleren</button>
+    <button class="btn btn-primary" onclick="bevestigBulkRetour()">↩ Bevestigen</button>
   </div>
 </div>
 </div>
@@ -565,14 +589,14 @@
     <h2>⚙️ Beheer</h2>
   </div>
   <div style="margin-bottom:0.5rem;font-size:13px;color:var(--ink3)">Aangemeld als: <strong id="beheer-aangemeld-naam"></strong></div>
-  <div class="tab-bar" style="flex-wrap:wrap">
-    <button class="tab-btn active" onclick="toonBeheerTab('lijsten')">📋 Lijsten</button>
-    <button class="tab-btn" onclick="toonBeheerTab('gebruikers')">👤 Gebruikers</button>
-    <button class="tab-btn" onclick="toonBeheerTab('uitleenlog')">📋 Uitleen log</button>
-    <button class="tab-btn" onclick="toonBeheerTab('uitstaand')">📤 Uitstaand</button>
-    <button class="tab-btn" onclick="toonBeheerTab('statistieken')">📊 Statistieken</button>
-    <button class="tab-btn" onclick="toonBeheerTab('prullenbak')">🗑 Prullenbak</button>
-    <button class="tab-btn" onclick="toonBeheerTab('instellingen')">⚙️ Instellingen</button>
+  <div class="tab-bar" id="beheer-tab-bar" style="flex-wrap:wrap">
+    <button class="beheer-tab-btn active" data-tab="lijsten" onclick="toonBeheerTab('lijsten')">📋 Lijsten</button>
+    <button class="beheer-tab-btn" data-tab="gebruikers" onclick="toonBeheerTab('gebruikers')">👤 Gebruikers</button>
+    <button class="beheer-tab-btn" data-tab="uitleenlog" onclick="toonBeheerTab('uitleenlog')">📋 Uitleen log</button>
+    <button class="beheer-tab-btn" data-tab="uitstaand" onclick="toonBeheerTab('uitstaand')">📤 Uitstaand</button>
+    <button class="beheer-tab-btn" data-tab="statistieken" onclick="toonBeheerTab('statistieken')">📊 Statistieken</button>
+    <button class="beheer-tab-btn" data-tab="prullenbak" onclick="toonBeheerTab('prullenbak')">🗑 Prullenbak</button>
+    <button class="beheer-tab-btn" data-tab="instellingen" onclick="toonBeheerTab('instellingen')">⚙️ Instellingen</button>
   </div>
   <div class="tab-content active" id="beheer-tab-lijsten">
     <p style="color:var(--ink3);font-size:14px;margin-bottom:1rem">Selecteer een categorie om te bewerken.</p>
@@ -620,10 +644,10 @@
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead>
           <tr style="background:var(--paper2);border-bottom:1px solid var(--paper3)">
-            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Naam</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Rol</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Status</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Aangemeld</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2);cursor:pointer;user-select:none" onclick="sorteerGebruikers('naam')">Naam <span id="sort-naam">↕</span></th>
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2);cursor:pointer;user-select:none" onclick="sorteerGebruikers('rol')">Rol <span id="sort-rol">↕</span></th>
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2);cursor:pointer;user-select:none" onclick="sorteerGebruikers('status')">Status <span id="sort-status">↕</span></th>
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2);cursor:pointer;user-select:none" onclick="sorteerGebruikers('aangemeld')">Aangemeld <span id="sort-aangemeld">↕</span></th>
             <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Acties</th>
           </tr>
         </thead>
@@ -1091,11 +1115,31 @@ function renderBibBoeken(lijst) {
     grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><h3>Geen boeken gevonden</h3><p>Pas je filters aan of voeg een nieuw boek toe.</p></div>';
     return;
   }
-  grid.innerHTML = lijst.map(b => `
-    <div class="book-card" onclick="toonBibDetail('${b.id}')">
+  grid.innerHTML = lijst.map(b => {
+    const uitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan}] : []);
+    const beschikbaar = (b.aantal||1) - uitleningen.length > 0;
+    // Enkel exacte ISBN match (niet titelmatch want titels kunnen gelijknamig zijn)
+    const bIsbn = (b.isbn||'').replace(/[^0-9X]/gi,'');
+    const inFavorieten = bIsbn.length >= 10 && boeken.some(f => {
+      const fIsbn = (f.isbn||'').replace(/[^0-9X]/gi,'');
+      return fIsbn.length >= 10 && fIsbn === bIsbn;
+    });
+    return `
+    <div class="book-card" style="position:relative" onclick="handleBibCardClick(event,'${b.id}')">
       <div class="book-cover">
-        ${b.coverUrl ? `<img src="${b.coverUrl}" alt="${b.titel}" onerror="this.style.display='none'">` : '📖'}
-        ${b.uitgeleendAan ? '<div style="position:absolute;top:8px;right:8px;background:#9b2335;color:#fff;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600">Uitgeleend</div>' : '<div style="position:absolute;top:8px;right:8px;background:#2d6a4f;color:#fff;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600">Beschikbaar</div>'}
+        ${b.coverUrl ? `<img src="${b.coverUrl}" alt="${b.titel}" onerror="this.style.display='none'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` : '<span style="font-size:48px">📖</span>'}
+        <div style="position:absolute;top:6px;right:6px;background:${beschikbaar?'#2d6a4f':'#9b2335'};color:#fff;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;z-index:3">${beschikbaar?'✓ Vrij':'Uit'}</div>
+        ${inFavorieten ? '<div style="position:absolute;top:6px;left:6px;background:#f0c040;font-size:16px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;z-index:3;box-shadow:0 2px 6px rgba(0,0,0,0.3)" title="Staat ook in Favorieten">⭐</div>' : ''}
+        <div style="position:absolute;bottom:6px;right:6px;z-index:10" onclick="event.stopPropagation()">
+          <input type="checkbox" class="bib-selecteer"
+            data-id="${b.id}"
+            data-beschikbaar="${beschikbaar}"
+            data-uitgeleend="${uitleningen.length}"
+            data-titel="${b.titel.replace(/"/g,'')}"
+            style="width:20px;height:20px;cursor:pointer;accent-color:${beschikbaar?'var(--accent)':'#9b2335'}"
+            title="${beschikbaar?'Selecteer voor uitlenen':'Selecteer voor terugbrengen'}"
+            onchange="updateBulkBar()">
+        </div>
       </div>
       <div class="book-info">
         <div class="book-title">${b.titel}</div>
@@ -1104,10 +1148,10 @@ function renderBibBoeken(lijst) {
           ${(b.types||[]).slice(0,1).map(t=>`<span class="tag type">${t}</span>`).join('')}
           ${(b.locaties||[]).slice(0,1).map(l=>`<span class="tag" style="background:#e8f4f8;color:#0c5460">${l}</span>`).join('')}
         </div>
-        ${b.uitgeleendAan ? `<div style="font-size:11px;color:var(--red);margin-top:4px">📤 ${b.uitgeleendAan}${b.uitgeleendOp && (new Date()-new Date(b.uitgeleendOp))>14*24*60*60*1000 ? ' ⚠️ >2 weken' : ''}</div>` : ''}
+        ${uitleningen.length ? `<div style="font-size:11px;color:var(--red);margin-top:4px">📤 ${uitleningen.length}/${b.aantal||1} uitgeleend${b.uitgeleendOp && (new Date()-new Date(b.uitgeleendOp))>14*24*60*60*1000 ? ' ⚠️ >2 weken' : ''}</div>` : ''}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function resetBibFilters() {
@@ -1309,12 +1353,93 @@ function updateBulkBar() {
   const geselecteerd = document.querySelectorAll('.bib-selecteer:checked');
   const bar = document.getElementById('bib-bulk-bar');
   const count = document.getElementById('bulk-count');
+  const uitleenBtn = document.getElementById('bulk-uitleen-btn');
+  const retourBtn = document.getElementById('bulk-retour-btn');
   if (geselecteerd.length > 0) {
     bar.style.display = 'flex';
     count.textContent = geselecteerd.length + ' geselecteerd';
+    const aantalBeschikbaar = Array.from(geselecteerd).filter(c => c.dataset.beschikbaar === 'true').length;
+    const aantalUitgeleend = Array.from(geselecteerd).filter(c => parseInt(c.dataset.uitgeleend||'0') > 0).length;
+    if (uitleenBtn) uitleenBtn.style.display = aantalBeschikbaar > 0 ? '' : 'none';
+    if (retourBtn) retourBtn.style.display = aantalUitgeleend > 0 ? '' : 'none';
   } else {
     bar.style.display = 'none';
   }
+}
+
+function bulkRetour() {
+  const geselecteerd = Array.from(document.querySelectorAll('.bib-selecteer:checked'));
+  const uitgeleend = geselecteerd.filter(c => parseInt(c.dataset.uitgeleend||'0') > 0);
+  if (!uitgeleend.length) { showToast('Geen uitgeleende boeken geselecteerd'); return; }
+
+  // Bouw lijst van boeken met checkboxes per lener
+  const lijst = document.getElementById('bulk-retour-lijst');
+  lijst.innerHTML = uitgeleend.map(c => {
+    const b = bibBoeken.find(x => x.id === c.dataset.id);
+    if (!b) return '';
+    const uitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan, vanuit:b.uitgeleendVanuit, op:b.uitgeleendOp}] : []);
+    const checkboxes = uitleningen.map((u,i) =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px">
+        <input type="checkbox" checked data-boek-id="${b.id}" data-idx="${i}"
+          style="width:16px;height:16px;accent-color:var(--accent)">
+        <span>${u.naam}${u.vanuit?' <span style="color:var(--ink3)">— '+u.vanuit+'</span>':''}</span>
+        ${u.op ? `<span style="color:var(--ink3);font-size:11px;margin-left:auto">${new Date(u.op).toLocaleDateString('nl-BE')}</span>` : ''}
+      </label>`
+    ).join('');
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--paper3)">
+      <div style="font-weight:500;font-size:14px;margin-bottom:6px">${b.titel}
+        <span style="font-size:11px;color:var(--ink3);font-weight:400">(${uitleningen.length} uitgeleend)</span>
+      </div>
+      ${checkboxes}
+    </div>`;
+  }).join('');
+
+  document.getElementById('modal-bulk-retour').classList.add('open');
+}
+
+async function bevestigBulkRetour() {
+  // Verzamel alle aangevinkte checkboxes gegroepeerd per boek
+  const checkboxes = Array.from(document.querySelectorAll('#bulk-retour-lijst input[type=checkbox]:checked'));
+  if (!checkboxes.length) { showToast('Niets geselecteerd'); return; }
+
+  // Groepeer per boekId welke indices teruggebracht worden
+  const perBoek = {};
+  checkboxes.forEach(cb => {
+    const id = cb.dataset.boekId;
+    if (!perBoek[id]) perBoek[id] = [];
+    perBoek[id].push(parseInt(cb.dataset.idx));
+  });
+
+  let gelukt = 0;
+  for (const [id, indices] of Object.entries(perBoek)) {
+    const b = bibBoeken.find(x => x.id === id);
+    if (!b) continue;
+    const uitleningen = [...(b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan, vanuit:b.uitgeleendVanuit, op:b.uitgeleendOp}] : []))];
+    // Log elke retour
+    for (const idx of indices.sort((a,b)=>b-a)) { // verwijder van achter naar voor
+      const retourLener = uitleningen[idx];
+      if (useFirebase) await logUitleen(id, b.titel, retourLener?.naam||'', retourLener?.vanuit||'', 'retour');
+      uitleningen.splice(idx, 1);
+      gelukt++;
+    }
+    const data = {
+      uitleningen,
+      uitgeleendAan: uitleningen.length > 0 ? uitleningen[0].naam : null,
+      uitgeleendVanuit: uitleningen.length > 0 ? uitleningen[0].vanuit : null,
+      uitgeleendOp: uitleningen.length > 0 ? uitleningen[0].op : null
+    };
+    if (useFirebase) await db.collection('bib').doc(id).update(data);
+    else {
+      const i = localBibBoeken.findIndex(x => x.id === id);
+      if (i >= 0) Object.assign(localBibBoeken[i], data);
+    }
+  }
+  if (!useFirebase) { bibBoeken = JSON.parse(JSON.stringify(localBibBoeken)); }
+  closeModal('modal-bulk-retour');
+  document.querySelectorAll('.bib-selecteer').forEach(c => c.checked = false);
+  updateBulkBar();
+  filterBib();
+  showToast(`${gelukt} exemplar${gelukt !== 1 ? 'en' : ''} teruggebracht ✅`);
 }
 
 async function bulkUitlenen() {
@@ -1339,8 +1464,11 @@ async function bulkUitlenen() {
   let msg = `${gelukt} boeken uitgeleend aan ${naam} ✅`;
   if (overgeslagen.length) msg += `
 ⚠️ Niet beschikbaar: ${overgeslagen.join(', ')}`;
-  alert(msg);
+  showToast(msg.split('\n')[0], 4000);
+  if (overgeslagen.length) setTimeout(() => alert(msg), 100);
   document.querySelectorAll('.bib-selecteer').forEach(c => c.checked = false);
+  updateBulkBar();
+  filterBib();
 }
 
 // ========== NAAR CATALOGUS ==========
@@ -1376,6 +1504,8 @@ function voegToeAanBib() {
   document.getElementById('naar-bib-titel').textContent = `"${b.titel}"`;
   document.getElementById('naar-bib-aantal').value = 1;
   renderMultiSelect('naar-bib-ms-locaties', lijsten.locaties||[], []);
+  const eigenaarSel = document.getElementById('naar-bib-eigenaar');
+  eigenaarSel.innerHTML = (lijsten.eigenaarschap||['School','Leerkracht','Leerling','Bibliotheek','Andere']).map(e=>`<option value="${e}">${e}</option>`).join('');
   document.getElementById('modal-naar-bib').classList.add('open');
 }
 
@@ -1390,6 +1520,7 @@ async function bevestigNaarBib() {
     types: b.types||[], themas: b.themas||[], leeftijd: b.leeftijd||[],
     avi: b.avi||'', extra: b.extra||[], notities: b.notities||'',
     locaties: locaties, aantal: aantal,
+    eigenaar: document.getElementById('naar-bib-eigenaar')?.value || 'School',
     aangepastOp: new Date().toISOString()
   };
   if (useFirebase) {
@@ -1973,6 +2104,30 @@ async function verwijderGebruiker(id, naam) {
   showToast(`"${naam}" verwijderd`);
 }
 
+let gebruikersSorteerKolom = 'naam';
+let gebruikersSorteerRichting = 'asc';
+
+function sorteerGebruikers(kolom) {
+  if (gebruikersSorteerKolom === kolom) {
+    gebruikersSorteerRichting = gebruikersSorteerRichting === 'asc' ? 'desc' : 'asc';
+  } else {
+    gebruikersSorteerKolom = kolom;
+    gebruikersSorteerRichting = 'asc';
+  }
+  // Update pijltjes
+  ['naam','rol','status','aangemeld'].forEach(k => {
+    const el = document.getElementById('sort-' + k);
+    if (el) el.textContent = k === kolom ? (gebruikersSorteerRichting === 'asc' ? '↑' : '↓') : '↕';
+  });
+  // Map kolom naar sorteer select waarde
+  const map = {naam:'naam', rol:'rol', status:'naam', aangemeld:'aangemeld'};
+  const sel = document.getElementById('gebruiker-sorteer');
+  if (sel && map[kolom]) {
+    sel.value = kolom === 'naam' && gebruikersSorteerRichting === 'desc' ? 'naam-z' : map[kolom];
+  }
+  renderGebruikersLijst();
+}
+
 function renderGebruikersLijst() {
   const el = document.getElementById('gebruikers-lijst');
   if (!el) return;
@@ -1988,12 +2143,15 @@ function renderGebruikersLijst() {
   });
 
   lijst.sort((a,b) => {
-    if (sorteer === 'naam') return a.naam.localeCompare(b.naam,'nl');
-    if (sorteer === 'naam-z') return b.naam.localeCompare(a.naam,'nl');
-    if (sorteer === 'rol') return (a.rol||'').localeCompare(b.rol||'');
-    if (sorteer === 'datum') return new Date(b.aangemaaktOp||0) - new Date(a.aangemaaktOp||0);
-    if (sorteer === 'aangemeld') return new Date(b.laastAangemeld||0) - new Date(a.laastAangemeld||0);
-    return 0;
+    let res = 0;
+    const k = gebruikersSorteerKolom || sorteer;
+    if (k === 'naam' || sorteer === 'naam') res = a.naam.localeCompare(b.naam,'nl');
+    else if (sorteer === 'naam-z') res = b.naam.localeCompare(a.naam,'nl');
+    else if (k === 'rol' || sorteer === 'rol') res = (a.rol||'').localeCompare(b.rol||'');
+    else if (k === 'status') res = (a.geblokkeerd?1:0) - (b.geblokkeerd?1:0);
+    else if (k === 'aangemeld' || sorteer === 'aangemeld') res = new Date(b.laastAangemeld||0) - new Date(a.laastAangemeld||0);
+    else if (sorteer === 'datum') res = new Date(b.aangemaaktOp||0) - new Date(a.aangemaaktOp||0);
+    return gebruikersSorteerRichting === 'desc' ? -res : res;
   });
 
   const count = document.getElementById('gebruiker-count');
@@ -2105,8 +2263,9 @@ function exportUitstaandExcel() {
 function toonStatTab(tab) {
   document.querySelectorAll('.stat-tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('stat-tab-' + tab).classList.add('active');
-  document.querySelectorAll('#beheer-tab-statistieken .tab-btn').forEach((b,i) => {
-    b.classList.toggle('active', ['algemeen','bib','uitlenen','favorieten'][i] === tab);
+  document.querySelectorAll('#beheer-tab-statistieken .tab-btn').forEach(b => {
+    const tabNaam = b.getAttribute('onclick')?.match(/toonStatTab\('(\w+)'\)/)?.[1];
+    b.classList.toggle('active', tabNaam === tab);
   });
   renderStatistieken(tab);
 }
@@ -3387,16 +3546,16 @@ async function logUitleen(boekId, boekTitel, naam, locatie, actie) {
 }
 
 function toonBeheerTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.getElementById('beheer-tab-' + tab).classList.add('active');
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    if (b.textContent.toLowerCase().includes(tab === 'lijsten' ? 'lijsten' : 'prullenbak')) b.classList.add('active');
-  });
+  document.querySelectorAll('.beheer-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#page-beheer .tab-content').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById('beheer-tab-' + tab);
+  if (tabEl) tabEl.classList.add('active');
+  const activeBtn = document.querySelector(`.beheer-tab-btn[data-tab="${tab}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
   if (tab === 'prullenbak') laadBeheerPrullenbak();
   if (tab === 'uitleenlog') laadUitleenLog();
   if (tab === 'uitstaand') laadUitstaandeUitleningen();
-  if (tab === 'statistieken') { toonStatTab('algemeen'); }
+  if (tab === 'statistieken') toonStatTab('algemeen');
   if (tab === 'gebruikers') renderGebruikersLijst();
 }
 
