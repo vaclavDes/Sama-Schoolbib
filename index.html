@@ -48,7 +48,7 @@
   .book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1.25rem;margin-top:1.5rem}
   .book-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s}
   .book-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
-  .book-cover{width:100%;height:220px;object-fit:cover;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-size:48px}
+  .book-cover{width:100%;height:220px;object-fit:cover;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;overflow:hidden}
   .book-cover img{width:100%;height:100%;object-fit:cover}
   .book-info{padding:0.85rem}
   .book-title{font-family:var(--font-title);font-size:1rem;color:var(--ink);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -105,6 +105,14 @@
 
   /* BEHEER */
   .beheer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:1.5rem}
+  .beheer-sidebar-layout{display:grid;grid-template-columns:200px 1fr;gap:1.5rem;min-height:400px}
+  .beheer-sidebar{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:0.75rem;height:fit-content}
+  .beheer-sidebar-item{padding:8px 12px;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500;color:var(--ink2);transition:all .15s;display:flex;align-items:center;gap:6px}
+  .beheer-sidebar-item:hover{background:var(--paper2);color:var(--ink)}
+  .beheer-sidebar-item.active{background:var(--accent);color:#fff}
+  .beheer-sidebar-item .count{margin-left:auto;background:rgba(0,0,0,0.1);border-radius:20px;padding:1px 7px;font-size:11px}
+  .beheer-content-panel{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:1.25rem}
+  @media(max-width:640px){.beheer-sidebar-layout{grid-template-columns:1fr}}
   .beheer-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:1.25rem}
   .beheer-card h3{font-family:var(--font-title);font-size:1.05rem;margin-bottom:1rem;color:var(--ink);border-bottom:1px solid var(--paper3);padding-bottom:0.5rem}
   .beheer-item{display:flex;align-items:center;justify-content:space-between;padding:5px 4px;font-size:13px;border-bottom:1px solid var(--paper2);border-radius:6px;transition:background .1s}
@@ -143,6 +151,15 @@
   .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
   .tab-content{display:none}
   .tab-content.active{display:block}
+  .stat-tab-content{display:none}.stat-tab-content.active{display:block}
+  .stat-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:1.25rem}
+  .stat-number{font-family:var(--font-title);font-size:2.5rem;color:var(--accent);line-height:1}
+  .stat-label{font-size:13px;color:var(--ink3);margin-top:4px}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem}
+  .stat-bar-wrap{margin-bottom:8px}
+  .stat-bar-label{font-size:12px;color:var(--ink2);margin-bottom:3px;display:flex;justify-content:space-between}
+  .stat-bar{height:8px;background:var(--paper3);border-radius:4px;overflow:hidden}
+  .stat-bar-fill{height:100%;background:var(--accent2);border-radius:4px;transition:width .5s}
   .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
   @keyframes spin{to{transform:rotate(360deg)}}
   @media(max-width:640px){
@@ -170,10 +187,14 @@
 
 <nav>
   <div class="logo">📚 Schoolbib & Favorieten</div>
+  <div id="nav-gebruiker" style="font-size:12px;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:8px">
+    <span id="nav-gebruiker-naam"></span>
+    <button onclick="afmelden()" style="background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px">Afmelden</button>
+  </div>
   <button onclick="showPage('bib')" id="nav-bib">🏫 Schoolbib</button>
   <button onclick="showPage('catalogus')" id="nav-catalogus">⭐ Favorieten</button>
   <button onclick="openPrullenbak()" id="nav-prullenbak">🗑 Prullenbak</button>
-  <button onclick="openBeheer()" id="nav-beheer">⚙️ Beheer</button>
+  <button onclick="openBeheer()" id="nav-beheer" style="display:none">⚙️ Beheer</button>
 </nav>
 
 <!-- CATALOGUS PAGE -->
@@ -206,6 +227,7 @@
     </div>
     <div style="margin-top:0.75rem;display:flex;align-items:center;flex-wrap:wrap;gap:0.75rem">
       <button class="btn btn-secondary btn-sm" onclick="resetFilters()">✕ Filters wissen</button>
+
       <div style="display:flex;align-items:center;gap:6px">
         <label style="font-size:13px;color:var(--ink2);margin:0">Sorteren:</label>
         <select id="sorteer" onchange="filterBoeken()" style="padding:5px 10px;font-size:13px;border:1px solid var(--paper3);border-radius:var(--radius);background:#fff;color:var(--ink);cursor:pointer">
@@ -292,6 +314,15 @@
     <div style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
       <button class="btn btn-secondary btn-sm" onclick="resetBibFilters()">✕ Filters wissen</button>
       <div style="display:flex;align-items:center;gap:6px">
+        <label style="font-size:13px;color:var(--ink2);margin:0">Tonen:</label>
+        <select id="bib-per-pagina" onchange="filterBib()" style="padding:5px 10px;font-size:13px;border:1px solid var(--paper3);border-radius:var(--radius);background:#fff;color:var(--ink);cursor:pointer">
+          <option value="10">10 willekeurig</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="0">Alle</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
         <label style="font-size:13px;color:var(--ink2);margin:0">Sorteren:</label>
         <select id="bib-sorteer" onchange="filterBib()" style="padding:5px 10px;font-size:13px;border:1px solid var(--paper3);border-radius:var(--radius);background:#fff;color:var(--ink);cursor:pointer">
           <option value="nieuwst">Nieuwst eerst</option>
@@ -305,6 +336,15 @@
     </div>
   </div>
 
+  <!-- Bulk uitlenen balk -->
+  <div style="background:var(--paper2);border:1px solid var(--paper3);border-radius:var(--radius);padding:8px 14px;margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px">
+    <span style="color:var(--ink2)">💡 <strong>Bulk uitlenen:</strong> vink boeken aan via het vakje linksboven op de cover</span>
+    <div id="bib-bulk-bar" style="display:none;align-items:center;gap:8px">
+      <span id="bulk-count" style="color:var(--accent);font-weight:600"></span>
+      <button class="btn btn-primary btn-sm" onclick="bulkUitlenen()">📤 Uitlenen</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.bib-selecteer').forEach(c=>{c.checked=false});updateBulkBar()">✕ Wis selectie</button>
+    </div>
+  </div>
   <div class="book-grid" id="bib-grid"></div>
 </div>
 </div>
@@ -317,6 +357,7 @@
     <div style="display:flex;gap:8px;flex-shrink:0;margin-left:1rem">
       <button class="btn btn-secondary btn-sm" onclick="voegToeAanCatalogus()">⭐ Naar favorieten</button>
       <button class="btn btn-secondary btn-sm" onclick="bewerkBibBoek()">✏️ Bewerken</button>
+      <button class="btn btn-secondary btn-sm" onclick="toonQRCode(huidigBibBoekId,'bib')">QR</button>
       <button class="btn btn-danger btn-sm" onclick="verwijderBibBoek()">🗑 Verwijderen</button>
       <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-bib-detail')">✕</button>
     </div>
@@ -428,16 +469,16 @@
         <input type="text" id="bib-f-auteur" required placeholder="Voornaam Achternaam">
       </div>
       <div>
+        <label>Illustrator</label>
+        <input type="text" id="bib-f-illustrator" placeholder="Voornaam Achternaam">
+      </div>
+      <div>
         <label>Uitgeverij</label>
         <input type="text" id="bib-f-uitgeverij" placeholder="Naam uitgeverij">
       </div>
       <div>
         <label>Taal</label>
         <select id="bib-f-taal"></select>
-      </div>
-      <div>
-        <label>Aantal exemplaren</label>
-        <input type="number" id="bib-f-aantal" min="1" value="1" placeholder="1">
       </div>
       <div class="form-full">
         <label>Type boek</label>
@@ -464,6 +505,18 @@
       <div class="form-full">
         <label>Locatie(s) op school</label>
         <div class="multi-select" id="bib-ms-locaties"></div>
+      </div>
+      <div class="form-full">
+        <label>Eigenaarschap</label>
+        <select id="bib-f-eigenaar" style="font-size:14px" onchange="checkEigenaarAnders()"></select>
+        <div id="eigenaar-anders-wrap" style="display:none;margin-top:8px">
+          <input type="text" id="bib-f-eigenaar-naam" placeholder="Naam van eigenaar..." oninput="checkEigenaarNaam()">
+          <div id="eigenaar-naam-fout" style="display:none;font-size:12px;color:var(--red);margin-top:4px"></div>
+        </div>
+      </div>
+      <div>
+        <label>Aantal exemplaren</label>
+        <input type="number" id="bib-f-aantal" min="1" value="1" placeholder="1">
       </div>
       <div class="form-full">
         <label>Notities</label>
@@ -511,18 +564,171 @@
   <div class="page-header">
     <h2>⚙️ Beheer</h2>
   </div>
-  <div class="tab-bar">
-    <button class="tab-btn active" onclick="toonBeheerTab('lijsten')">📋 Lijsten beheren</button>
+  <div style="margin-bottom:0.5rem;font-size:13px;color:var(--ink3)">Aangemeld als: <strong id="beheer-aangemeld-naam"></strong></div>
+  <div class="tab-bar" style="flex-wrap:wrap">
+    <button class="tab-btn active" onclick="toonBeheerTab('lijsten')">📋 Lijsten</button>
+    <button class="tab-btn" onclick="toonBeheerTab('gebruikers')">👤 Gebruikers</button>
+    <button class="tab-btn" onclick="toonBeheerTab('uitleenlog')">📋 Uitleen log</button>
+    <button class="tab-btn" onclick="toonBeheerTab('uitstaand')">📤 Uitstaand</button>
+    <button class="tab-btn" onclick="toonBeheerTab('statistieken')">📊 Statistieken</button>
     <button class="tab-btn" onclick="toonBeheerTab('prullenbak')">🗑 Prullenbak</button>
+    <button class="tab-btn" onclick="toonBeheerTab('instellingen')">⚙️ Instellingen</button>
   </div>
   <div class="tab-content active" id="beheer-tab-lijsten">
-    <p style="color:var(--ink3);font-size:14px;margin-bottom:1rem">Voeg categorieën toe, hernoem of verwijder ze. Sleep items om de volgorde te wijzigen.</p>
-    <div class="beheer-grid" id="beheer-grid"></div>
+    <p style="color:var(--ink3);font-size:14px;margin-bottom:1rem">Selecteer een categorie om te bewerken.</p>
+    <div class="beheer-sidebar-layout">
+      <div class="beheer-sidebar" id="beheer-sidebar"></div>
+      <div class="beheer-content-panel" id="beheer-content-panel">
+        <p style="color:var(--ink3);font-size:14px">← Kies een categorie</p>
+      </div>
+    </div>
   </div>
+  <div class="tab-content" id="beheer-tab-uitleenlog">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+      <p style="color:var(--ink3);font-size:14px;margin:0">Alle uitleningen en terugbrengingen in chronologische volgorde.</p>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="wisBoekGeschiedenisModal()">📖 Boekgeschiedenis wissen</button>
+        <button class="btn btn-danger btn-sm" onclick="verwijderAlleUitleenLogs()">🗑 Alle logs wissen</button>
+      </div>
+    </div>
+    <div id="uitleen-log-container"></div>
+  </div>
+
+  <!-- GEBRUIKERS TAB -->
+  <div class="tab-content" id="beheer-tab-gebruikers">
+    <!-- Toolbar -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
+      <input type="text" id="gebruiker-zoek" placeholder="🔍 Zoek gebruiker..." oninput="renderGebruikersLijst()" style="width:200px;font-size:13px;padding:6px 10px">
+      <select id="gebruiker-filter-rol" onchange="renderGebruikersLijst()" style="font-size:13px;padding:6px 10px;border:1px solid var(--paper3);border-radius:var(--radius)">
+        <option value="">Alle rollen</option>
+        <option value="beheerder">🔑 Beheerder</option>
+        <option value="gebruiker">✏️ Gebruiker</option>
+        <option value="gast">👁 Gast</option>
+      </select>
+      <select id="gebruiker-sorteer" onchange="renderGebruikersLijst()" style="font-size:13px;padding:6px 10px;border:1px solid var(--paper3);border-radius:var(--radius)">
+        <option value="naam">Naam A→Z</option>
+        <option value="naam-z">Naam Z→A</option>
+        <option value="rol">Rol</option>
+        <option value="datum">Datum aangemaakt</option>
+        <option value="aangemeld">Laatste aanmelding</option>
+      </select>
+      <span id="gebruiker-count" style="font-size:12px;color:var(--ink3);margin-left:auto"></span>
+    </div>
+
+    <!-- Gebruikerstabel -->
+    <div style="background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1rem">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--paper2);border-bottom:1px solid var(--paper3)">
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Naam</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Rol</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Status</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Aangemeld</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--ink2)">Acties</th>
+          </tr>
+        </thead>
+        <tbody id="gebruikers-lijst"></tbody>
+      </table>
+    </div>
+
+    <!-- Nieuw gebruiker toevoegen -->
+    <div style="background:#fff;border:1px solid var(--paper3);border-radius:var(--radius-lg);padding:1rem">
+      <div style="font-size:12px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.75rem">Nieuwe gebruiker</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="nieuw-gebruiker-naam" placeholder="Naam (= wachtwoord)" style="flex:1;min-width:150px;font-size:13px;padding:6px 10px" onkeydown="if(event.key==='Enter')voegGebruikerToe()">
+        <select id="nieuw-gebruiker-rol" style="font-size:13px;padding:6px 10px;border:1px solid var(--paper3);border-radius:var(--radius)">
+          <option value="gebruiker">✏️ Gebruiker</option>
+          <option value="beheerder">🔑 Beheerder</option>
+          <option value="gast">👁 Gast</option>
+        </select>
+        <button class="btn btn-primary" style="padding:6px 14px;font-size:13px" onclick="voegGebruikerToe()">+ Toevoegen</button>
+      </div>
+      <div style="margin-top:0.75rem;font-size:11px;color:var(--ink3)">
+        🔑 Beheerder: alles + beheer &nbsp;·&nbsp; ✏️ Gebruiker: toevoegen/bewerken &nbsp;·&nbsp; 👁 Gast: alleen bekijken
+      </div>
+    </div>
+  </div>
+
+  <!-- UITSTAANDE UITLENINGEN TAB -->
+  <div class="tab-content" id="beheer-tab-uitstaand">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+      <p style="color:var(--ink3);font-size:14px;margin:0">Alle boeken die momenteel uitgeleend zijn.</p>
+      <button class="btn btn-secondary btn-sm" onclick="exportUitstaandExcel()">⬇ Exporteer als Excel</button>
+    </div>
+    <div id="uitstaand-container"></div>
+  </div>
+
+  <!-- STATISTIEKEN TAB -->
+  <div class="tab-content" id="beheer-tab-statistieken">
+    <div class="tab-bar" style="margin-bottom:1.5rem">
+      <button class="tab-btn active" onclick="toonStatTab('algemeen')">📊 Algemeen</button>
+      <button class="tab-btn" onclick="toonStatTab('bib')">🏫 Bib</button>
+      <button class="tab-btn" onclick="toonStatTab('uitlenen')">📤 Uitlenen</button>
+      <button class="tab-btn" onclick="toonStatTab('favorieten')">⭐ Favorieten</button>
+    </div>
+    <div id="stat-tab-algemeen" class="stat-tab-content active"></div>
+    <div id="stat-tab-bib" class="stat-tab-content"></div>
+    <div id="stat-tab-uitlenen" class="stat-tab-content"></div>
+    <div id="stat-tab-favorieten" class="stat-tab-content"></div>
+  </div>
+
   <div class="tab-content" id="beheer-tab-prullenbak">
     <p style="color:var(--ink3);font-size:14px;margin-bottom:1rem">Verwijderde boeken permanent wissen kan niet ongedaan gemaakt worden.</p>
     <div class="book-grid" id="beheer-prullenbak-grid"></div>
   </div>
+  <div class="tab-content" id="beheer-tab-instellingen">
+    <div class="beheer-grid">
+      <!-- Wachtwoord wijzigen -->
+      <div class="beheer-card">
+        <h3>🔒 Wachtwoord wijzigen</h3>
+        <div style="display:flex;flex-direction:column;gap:0.75rem">
+          <div>
+            <label>Huidig wachtwoord</label>
+            <input type="password" id="ww-huidig" placeholder="Huidig wachtwoord...">
+          </div>
+          <div>
+            <label>Nieuw wachtwoord</label>
+            <input type="password" id="ww-nieuw" placeholder="Nieuw wachtwoord...">
+          </div>
+          <div>
+            <label>Bevestig nieuw wachtwoord</label>
+            <input type="password" id="ww-bevestig" placeholder="Herhaal nieuw wachtwoord...">
+          </div>
+          <div id="ww-wijzig-fout" style="color:var(--red);font-size:13px;display:none"></div>
+          <button class="btn btn-primary" onclick="wijzigWachtwoord()">🔒 Wachtwoord opslaan</button>
+        </div>
+      </div>
+      <!-- Back-up -->
+      <div class="beheer-card">
+        <h3>💾 Back-up & Herstel</h3>
+        <p style="font-size:13px;color:var(--ink3);margin-bottom:1rem">Exporteer alle data als back-up. Bewaar dit bestand op een veilige plek.</p>
+        <div style="display:flex;flex-direction:column;gap:0.75rem">
+          <button class="btn btn-primary" onclick="exportBackup()">⬇ Volledige back-up downloaden</button>
+          <div style="border-top:1px solid var(--paper3);padding-top:0.75rem">
+            <p style="font-size:13px;color:var(--red);margin-bottom:0.5rem">⚠️ Back-up importeren overschrijft alle huidige data!</p>
+            <input type="file" id="backupImportInput" accept=".json" style="display:none" onchange="importBackup(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('backupImportInput').click()">📥 Back-up importeren</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="modal-bg" id="modal-login" style="background:rgba(26,18,9,0.85)">
+<div class="modal" style="max-width:380px;text-align:center">
+  <div style="font-size:48px;margin-bottom:0.5rem">📚</div>
+  <h2 style="margin-bottom:0.25rem">Welkom!</h2>
+  <p style="color:var(--ink3);font-size:14px;margin-bottom:1.5rem">Vul je wachtwoord in om aan te melden.</p>
+  <div style="margin-bottom:1rem;text-align:left">
+    <label>Wachtwoord</label>
+    <input type="password" id="login-wachtwoord" placeholder="Jouw wachtwoord..." autofocus onkeydown="if(event.key==='Enter')aanmelden()">
+  </div>
+  <div id="login-fout" style="display:none;color:var(--red);font-size:13px;margin-bottom:0.75rem">❌ Onbekend wachtwoord</div>
+  <button class="btn btn-primary" style="width:100%" onclick="aanmelden()">🔓 Aanmelden</button>
+  <p style="font-size:12px;color:var(--ink3);margin-top:1rem">Vraag de beheerder om een account aan te maken.</p>
 </div>
 </div>
 
@@ -534,6 +740,7 @@
     <div style="display:flex;gap:8px;flex-shrink:0;margin-left:1rem;flex-wrap:wrap;justify-content:flex-end">
       <button class="btn btn-primary btn-sm" onclick="voegToeAanBib()">🏫 Naar Bib</button>
       <button class="btn btn-secondary btn-sm" id="btn-bewerk" onclick="bewerkHuidigBoek()">✏️ Bewerken</button>
+      <button class="btn btn-secondary btn-sm" onclick="toonQRCode(huidigBoekId,'fav')">QR</button>
       <button class="btn btn-danger btn-sm" id="btn-verwijder" onclick="verwijderHuidigBoek()">🗑 Verwijderen</button>
       <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-detail')">✕</button>
     </div>
@@ -589,6 +796,10 @@
       <div>
         <label>Auteur *</label>
         <input type="text" id="f-auteur" required placeholder="Voornaam Achternaam">
+      </div>
+      <div>
+        <label>Illustrator</label>
+        <input type="text" id="f-illustrator" placeholder="Voornaam Achternaam">
       </div>
       <div>
         <label>Uitgeverij</label>
@@ -683,6 +894,19 @@
 </div>
 </div>
 
+<!-- QR CODE MODAL -->
+<div class="modal-bg" id="modal-qr">
+<div class="modal" style="max-width:340px;text-align:center">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <h2 style="margin:0;font-size:1.1rem" id="qr-titel"></h2>
+    <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-qr')">✕</button>
+  </div>
+  <div id="qr-container" style="display:flex;justify-content:center;margin:1rem 0"></div>
+  <p style="font-size:12px;color:var(--ink3);margin-bottom:1rem">Scan om dit boek direct te openen in de app.</p>
+  <button class="btn btn-secondary btn-sm" onclick="printQR()">🖨️ Afdrukken</button>
+</div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -754,10 +978,12 @@ let localLijsten = {
   talen: ['Nederlands','Frans','Engels','Duits','Spaans'],
   avi: ['AVI Start','AVI M3','AVI E3','AVI M4','AVI E4','AVI M5','AVI E5','AVI M6','AVI E6','AVI Plus'],
   extra: ['Bekroond','Verfilmd','Klassieker','Leesclub tip','Genomineerd'],
-  locaties: ['Schoolbib hoofdschool','Schoolbib wijkschool','Klas 1','Klas 2','Klas 3','Klas 4','Klas 5','Klas 6']
+  locaties: ['Schoolbib hoofdschool','Schoolbib wijkschool','Klas 1','Klas 2','Klas 3','Klas 4','Klas 5','Klas 6'],
+  eigenaarschap: ['School','Leerkracht','Leerling','Bibliotheek','Andere']
 };
 
 // ========== STATE ==========
+let huidigWachtwoord = ''; // Wachtwoord beheerd via Firebase
 let boeken = [];
 let lijsten = {};
 let localPrullenbak = [];
@@ -805,7 +1031,7 @@ function filterBib() {
   const sorteer = document.getElementById('bib-sorteer')?.value || 'nieuwst';
 
   const res = bibBoeken.filter(b => {
-    if (zoek && !`${b.titel} ${b.auteur} ${b.isbn}`.toLowerCase().includes(zoek)) return false;
+    if (zoek && !`${b.titel} ${b.auteur} ${b.isbn} ${b.illustrator||''}`.toLowerCase().includes(zoek)) return false;
     if (types.length && !types.some(t => (b.types||[]).includes(t))) return false;
     if (themas.length && !themas.some(t => (b.themas||[]).includes(t))) return false;
     if (locaties.length && !locaties.some(l => (b.locaties||[]).includes(l))) return false;
@@ -842,8 +1068,21 @@ function filterBib() {
   updateFilterBtnLabel('bib-extra', 'Extra');
   updateFilterBtnLabel('bib-uitleen', 'Status');
 
-  document.getElementById('bib-result-count').textContent = res.length + ' boek' + (res.length !== 1 ? 'en' : '');
-  renderBibBoeken(res);
+  // Willekeurig/paginering voor bib
+  const bibPerPagina = parseInt(document.getElementById('bib-per-pagina')?.value ?? '10');
+  const heeftBibFilters = zoek || types.length || themas.length || locaties.length || talen.length ||
+    leeftijdJaren.length || avis.length || extras.length || statussen.length;
+  let bibTeLaten = res;
+  if (!heeftBibFilters && bibPerPagina === 10 && res.length > 10) {
+    bibTeLaten = [...res].sort(() => Math.random() - 0.5).slice(0, 10);
+    document.getElementById('bib-result-count').textContent = '10 willekeurige boeken (van ' + res.length + ' totaal)';
+  } else if (bibPerPagina > 0 && res.length > bibPerPagina) {
+    bibTeLaten = res.slice(0, bibPerPagina);
+    document.getElementById('bib-result-count').textContent = bibTeLaten.length + ' van ' + res.length + ' boeken';
+  } else {
+    document.getElementById('bib-result-count').textContent = res.length + ' boek' + (res.length !== 1 ? 'en' : '');
+  }
+  renderBibBoeken(bibTeLaten);
 }
 
 function renderBibBoeken(lijst) {
@@ -860,12 +1099,12 @@ function renderBibBoeken(lijst) {
       </div>
       <div class="book-info">
         <div class="book-title">${b.titel}</div>
-        <div class="book-author">${b.auteur||''}</div>
+        <div class="book-author">${b.auteur||''}${b.illustrator?' · ill. '+b.illustrator:''}</div>
         <div class="book-tags">
           ${(b.types||[]).slice(0,1).map(t=>`<span class="tag type">${t}</span>`).join('')}
           ${(b.locaties||[]).slice(0,1).map(l=>`<span class="tag" style="background:#e8f4f8;color:#0c5460">${l}</span>`).join('')}
         </div>
-        ${b.uitgeleendAan ? `<div style="font-size:11px;color:var(--red);margin-top:4px">📤 ${b.uitgeleendAan}</div>` : ''}
+        ${b.uitgeleendAan ? `<div style="font-size:11px;color:var(--red);margin-top:4px">📤 ${b.uitgeleendAan}${b.uitgeleendOp && (new Date()-new Date(b.uitgeleendOp))>14*24*60*60*1000 ? ' ⚠️ >2 weken' : ''}</div>` : ''}
       </div>
     </div>
   `).join('');
@@ -915,12 +1154,14 @@ function toonBibDetail(id) {
   const bibTags = (arr, cls) => arr&&arr.length ? `<div class="detail-tags">${arr.map(t=>`<span class="tag ${cls}">${t}</span>`).join('')}</div>` : '';
   meta.innerHTML = `
     ${rij('Auteur', b.auteur)}
+    ${rij('Illustrator', b.illustrator)}
     ${rij('Uitgeverij', b.uitgeverij)}
     ${rij('ISBN', b.isbn)}
     ${rij('Taal', b.taal)}
     ${rij('Leeftijd', (Array.isArray(b.leeftijd)?b.leeftijd:(b.leeftijd?[b.leeftijd]:[])).map(l=>l+' jaar').join(', '))}
     ${rij('AVI', b.avi)}
     ${rij('Aantal exemplaren', b.aantal)}
+    ${rij('Eigenaarschap', b.eigenaar || 'School')}
     <dt>Type</dt><dd>${bibTags(b.types,'type')}</dd>
     <dt>Thema's</dt><dd>${bibTags(b.themas,'thema')}</dd>
     <dt>Extra</dt><dd>${bibTags(b.extra,'extra')}</dd>
@@ -937,25 +1178,46 @@ function toonBibDetail(id) {
 
   // Uitleen status
   const uitWrap = document.getElementById('uitleen-status-wrap');
-  if (b.uitgeleendAan) {
-    uitWrap.innerHTML = `
-      <div style="background:#fce4ec;border-radius:var(--radius);padding:0.75rem;margin-bottom:0.5rem">
-        <div style="font-size:12px;color:#880e4f;font-weight:600;margin-bottom:4px">📤 Uitgeleend</div>
-        <div style="font-size:13px;color:#880e4f">${b.uitgeleendAan}</div>
-        ${b.uitgeleendVanuit ? `<div style="font-size:12px;color:#880e4f;margin-top:2px">Vanuit: ${b.uitgeleendVanuit}</div>` : ''}
-        ${b.uitgeleendOp ? `<div style="font-size:11px;color:#ad1457;margin-top:2px">${new Date(b.uitgeleendOp).toLocaleDateString('nl-BE')}</div>` : ''}
-      </div>
-      <button class="btn btn-primary btn-sm" style="width:100%;margin-bottom:6px" onclick="retourneerBoek('${b.id}')">↩ Boek teruggekeerd</button>`;
-  } else {
-    uitWrap.innerHTML = `
-      <div style="background:#d4edda;border-radius:var(--radius);padding:0.75rem;margin-bottom:0.5rem">
-        <div style="font-size:12px;color:#155724;font-weight:600">✅ Beschikbaar</div>
-      </div>
-      <button class="btn btn-primary btn-sm" style="width:100%;margin-bottom:6px" onclick="openUitleen('${b.id}')">📤 Uitlenen</button>`;
+  // Uitleen status per exemplaar
+  const uitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam: b.uitgeleendAan, vanuit: b.uitgeleendVanuit, op: b.uitgeleendOp}] : []);
+  const aantalBeschikbaar = (b.aantal||1) - uitleningen.length;
+  uitWrap.innerHTML = '';
+
+  if (uitleningen.length > 0) {
+    uitWrap.innerHTML += '<div style="background:#fce4ec;border-radius:var(--radius);padding:0.75rem;margin-bottom:0.5rem">' +
+      '<div style="font-size:12px;color:#880e4f;font-weight:600;margin-bottom:6px">📤 Uitgeleend (' + uitleningen.length + '/' + (b.aantal||1) + ')</div>' +
+      uitleningen.map((u,i) => {
+        const btnId = 'retbtn_' + b.id + '_' + i;
+        setTimeout(() => { const el = document.getElementById(btnId); if(el) el.onclick = () => retourneerExemplaar(b.id, i); }, 50);
+        return '<div style="font-size:12px;color:#880e4f;padding:3px 0;border-bottom:1px solid rgba(136,14,79,0.1)">' +
+          u.naam + (u.vanuit?' — '+u.vanuit:'') +
+          '<button id="' + btnId + '" style="float:right;background:none;border:1px solid #880e4f;border-radius:4px;padding:1px 6px;font-size:10px;cursor:pointer;color:#880e4f">↩</button></div>';
+      }).join('') +
+      '</div>';
+  }
+  if (aantalBeschikbaar > 0) {
+    uitWrap.innerHTML += '<div style="background:#d4edda;border-radius:var(--radius);padding:0.5rem 0.75rem;margin-bottom:0.5rem;font-size:12px;color:#155724;font-weight:600">✅ ' + aantalBeschikbaar + ' beschikbaar</div>';
+    uitWrap.innerHTML += '<button class="btn btn-primary btn-sm" style="width:100%;margin-bottom:6px" onclick="openUitleen(\'' + b.id + '\')">📤 Uitlenen</button>';
   }
 
   if (b.notities) {
-    locWrap.innerHTML += `<div style="background:var(--paper2);border-left:3px solid var(--accent2);border-radius:0 var(--radius) var(--radius) 0;padding:0.75rem"><div style="font-size:12px;color:var(--ink3);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Notities</div><div style="font-size:14px;white-space:pre-wrap">${b.notities}</div></div>`;
+    locWrap.innerHTML += `<div style="background:var(--paper2);border-left:3px solid var(--accent2);border-radius:0 var(--radius) var(--radius) 0;padding:0.75rem;margin-top:0.75rem"><div style="font-size:12px;color:var(--ink3);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Notities</div><div style="font-size:14px;white-space:pre-wrap">${b.notities}</div></div>`;
+  }
+  // Uitleen geschiedenis (ingeklapt)
+  if (b.uitleenGeschiedenis && b.uitleenGeschiedenis.length) {
+    const hist = [...b.uitleenGeschiedenis].reverse();
+    const histId = 'hist_' + b.id.replace(/[^a-z0-9]/gi,'');
+    locWrap.innerHTML += `<div style="margin-top:0.75rem;background:var(--paper2);border-radius:var(--radius);overflow:hidden">
+      <div onclick="toggleGeschiedenis('${histId}')" style="padding:0.75rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;user-select:none">
+        📋 Uitleen geschiedenis (${hist.length})
+        <span id="${histId}-arrow" style="transition:transform .3s">▶</span>
+      </div>
+      <div id="${histId}" style="max-height:0;overflow:hidden;transition:max-height .4s ease">
+        <div style="padding:0 0.75rem 0.75rem">
+          ${hist.map(h=>`<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--paper3);color:var(--ink2)">${h.naam} — ${h.vanuit||''}<span style="color:var(--ink3);float:right">${new Date(h.op).toLocaleDateString('nl-BE')}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
   }
 
   document.getElementById('modal-bib-detail').classList.add('open');
@@ -965,10 +1227,13 @@ function toonBibDetail(id) {
 function openUitleen(id) {
   huidigUitleenId = id;
   const b = bibBoeken.find(x => x.id === id);
-  document.getElementById('uitleen-boek-titel').textContent = b?.titel || '';
+  if (!b) return;
+  const uitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan,vanuit:b.uitgeleendVanuit,op:b.uitgeleendOp}] : []);
+  const beschikbaar = (b.aantal||1) - uitleningen.length;
+  if (beschikbaar <= 0) { showToast('Alle exemplaren zijn uitgeleend'); return; }
+  document.getElementById('uitleen-boek-titel').textContent = b.titel + (b.aantal > 1 ? ` (${beschikbaar} beschikbaar)` : '');
   document.getElementById('uitleen-naam').value = '';
   const sel = document.getElementById('uitleen-locatie');
-  // Toon enkel locaties waar het boek aanwezig is
   const boekLocaties = b?.locaties?.length ? b.locaties : (lijsten.locaties||[]);
   sel.innerHTML = '<option value="">-- kies locatie --</option>' + boekLocaties.map(l=>`<option>${l}</option>`).join('');
   if (boekLocaties.length === 1) sel.value = boekLocaties[0];
@@ -979,7 +1244,12 @@ async function bevestigUitleen() {
   const naam = document.getElementById('uitleen-naam').value.trim();
   if (!naam) { showToast('Vul een naam in'); return; }
   const locatie = document.getElementById('uitleen-locatie').value;
-  const data = { uitgeleendAan: naam, uitgeleendVanuit: locatie, uitgeleendOp: new Date().toISOString() };
+  const huidigBoek = bibBoeken.find(x => x.id === huidigUitleenId);
+  const oudeUitleningen = huidigBoek?.uitleningen || (huidigBoek?.uitgeleendAan ? [{naam:huidigBoek.uitgeleendAan,vanuit:huidigBoek.uitgeleendVanuit,op:huidigBoek.uitgeleendOp}] : []);
+  const nieuweUitleningen = [...oudeUitleningen, {naam, vanuit: locatie, op: new Date().toISOString()}];
+  const oudeGeschiedenis = huidigBoek?.uitleenGeschiedenis || [];
+  const nieuweGeschiedenis = [...oudeGeschiedenis, {naam, vanuit: locatie, op: new Date().toISOString()}];
+  const data = { uitleningen: nieuweUitleningen, uitgeleendAan: naam, uitgeleendVanuit: locatie, uitgeleendOp: new Date().toISOString(), uitleenGeschiedenis: nieuweGeschiedenis };
   if (useFirebase) {
     await db.collection('bib').doc(huidigUitleenId).update(data);
   } else {
@@ -988,14 +1258,41 @@ async function bevestigUitleen() {
     bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
     filterBib();
   }
+  await logUitleen(huidigUitleenId, huidigBoek?.titel||'', naam, locatie, 'uitleen');
   closeModal('modal-uitleen');
   closeModal('modal-bib-detail');
   showToast(`Uitgeleend aan ${naam} ✅`);
 }
 
+function handleBibCardClick(e, id) {
+  if (e.target.classList.contains('bib-selecteer') || e.target.type === 'checkbox') return;
+  toonBibDetail(id);
+}
+
+async function retourneerExemplaar(id, idx) {
+  if (!confirm('Exemplaar teruggekeerd bevestigen?')) return;
+  const b = bibBoeken.find(x => x.id === id);
+  if (!b) return;
+  const uitleningen = [...(b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan,vanuit:b.uitgeleendVanuit,op:b.uitgeleendOp}] : []))];
+  uitleningen.splice(idx, 1);
+  const data = { uitleningen, uitgeleendAan: uitleningen.length > 0 ? uitleningen[0].naam : null };
+  if (useFirebase) {
+    await db.collection('bib').doc(id).update(data);
+  } else {
+    const i = localBibBoeken.findIndex(b => b.id === id);
+    if (i >= 0) Object.assign(localBibBoeken[i], data);
+    bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+    filterBib();
+  }
+  const bRetour = bibBoeken.find(x => x.id === id);
+  await logUitleen(id, bRetour?.titel||'', uitleningen[idx]?.naam||'', uitleningen[idx]?.vanuit||'', 'retour');
+  closeModal('modal-bib-detail');
+  showToast('Exemplaar teruggekeerd ✅');
+}
+
 async function retourneerBoek(id) {
-  if (!confirm('Boek teruggekeerd bevestigen?')) return;
-  const data = { uitgeleendAan: null, uitgeleendVanuit: null, uitgeleendOp: null };
+  if (!confirm('Alle exemplaren teruggekeerd bevestigen?')) return;
+  const data = { uitleningen: [], uitgeleendAan: null, uitgeleendVanuit: null, uitgeleendOp: null };
   if (useFirebase) {
     await db.collection('bib').doc(id).update(data);
   } else {
@@ -1008,6 +1305,44 @@ async function retourneerBoek(id) {
   showToast('Boek teruggekeerd ✅');
 }
 
+function updateBulkBar() {
+  const geselecteerd = document.querySelectorAll('.bib-selecteer:checked');
+  const bar = document.getElementById('bib-bulk-bar');
+  const count = document.getElementById('bulk-count');
+  if (geselecteerd.length > 0) {
+    bar.style.display = 'flex';
+    count.textContent = geselecteerd.length + ' geselecteerd';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function bulkUitlenen() {
+  const geselecteerd = Array.from(document.querySelectorAll('.bib-selecteer:checked')).map(c => c.dataset.id);
+  if (!geselecteerd.length) { showToast('Geen boeken geselecteerd'); return; }
+  const naam = prompt('Naam van de lener:');
+  if (!naam || !naam.trim()) return;
+  let gelukt = 0, overgeslagen = [];
+  for (const id of geselecteerd) {
+    const b = bibBoeken.find(x => x.id === id);
+    if (!b) continue;
+    const uitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan,vanuit:b.uitgeleendVanuit,op:b.uitgeleendOp}] : []);
+    const beschikbaar = (b.aantal||1) - uitleningen.length;
+    if (beschikbaar <= 0) { overgeslagen.push(b.titel); continue; }
+    const nieuweUitleningen = [...uitleningen, {naam: naam.trim(), vanuit: '', op: new Date().toISOString()}];
+    const data = { uitleningen: nieuweUitleningen, uitleenGeschiedenis: [...(b.uitleenGeschiedenis||[]), {naam: naam.trim(), vanuit:'', op: new Date().toISOString()}], uitgeleendAan: naam.trim(), uitgeleendOp: new Date().toISOString() };
+    if (useFirebase) await db.collection('bib').doc(id).update(data);
+    else { const i = localBibBoeken.findIndex(x => x.id === id); if (i>=0) Object.assign(localBibBoeken[i], data); }
+    gelukt++;
+  }
+  if (!useFirebase) { bibBoeken = JSON.parse(JSON.stringify(localBibBoeken)); filterBib(); }
+  let msg = `${gelukt} boeken uitgeleend aan ${naam} ✅`;
+  if (overgeslagen.length) msg += `
+⚠️ Niet beschikbaar: ${overgeslagen.join(', ')}`;
+  alert(msg);
+  document.querySelectorAll('.bib-selecteer').forEach(c => c.checked = false);
+}
+
 // ========== NAAR CATALOGUS ==========
 function voegToeAanCatalogus() {
   const b = bibBoeken.find(x => x.id === huidigBibBoekId);
@@ -1015,7 +1350,7 @@ function voegToeAanCatalogus() {
   // Controleer of al in catalogus
   const bestaatAl = boeken.some(c => c.isbn && c.isbn === b.isbn || c.titel.toLowerCase() === b.titel.toLowerCase());
   if (bestaatAl) {
-    if (!confirm('Dit boek staat mogelijk al in de catalogus. Toch toevoegen?')) return;
+    if (!confirm('Dit boek staat mogelijk al in Favorieten. Toch toevoegen?')) return;
   }
   closeModal('modal-bib-detail');
   // Open catalogus form met data vooringevuld
@@ -1075,13 +1410,18 @@ function openBibBoekModal(boek = null) {
   bibCoverData = null;
   bibDuplicaatNegeren = false;
   document.getElementById('bib-form-title').textContent = boek ? 'Bib boek bewerken' : 'Boek toevoegen aan Bib';
-  ['bib-f-isbn','bib-f-titel','bib-f-auteur','bib-f-uitgeverij','bib-f-notities'].forEach(id => document.getElementById(id).value = '');
+  ['bib-f-isbn','bib-f-titel','bib-f-auteur','bib-f-illustrator','bib-f-uitgeverij','bib-f-notities'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('bib-f-aantal').value = 1;
   verwijderBibCover();
   document.getElementById('bib-duplicaat-waarschuwing').style.display = 'none';
 
   const taalSel = document.getElementById('bib-f-taal');
   taalSel.innerHTML = '<option value="">-- kies taal --</option>' + (lijsten.talen||[]).map(t=>`<option>${t}</option>`).join('');
+  const eigenaarSel = document.getElementById('bib-f-eigenaar');
+  eigenaarSel.innerHTML = (lijsten.eigenaarschap||['School','Leerkracht','Leerling','Bibliotheek','Andere']).map(e=>`<option value="${e}">${e}</option>`).join('');
+  eigenaarSel.value = (lijsten.eigenaarschap||[]).includes(boek?.eigenaar||'') ? boek.eigenaar : 'School';
+  document.getElementById('eigenaar-anders-wrap').style.display = 'none';
+  document.getElementById('bib-f-eigenaar-naam').value = '';
   renderMultiSelect('bib-ms-types', lijsten.types||[], boek?.types||[]);
   renderMultiSelect('bib-ms-themas', lijsten.themas||[], boek?.themas||[]);
   renderMultiSelect('bib-ms-extra', lijsten.extra||[], boek?.extra||[]);
@@ -1097,6 +1437,7 @@ function openBibBoekModal(boek = null) {
     document.getElementById('bib-f-isbn').value = boek.isbn||'';
     document.getElementById('bib-f-titel').value = boek.titel||'';
     document.getElementById('bib-f-auteur').value = boek.auteur||'';
+    document.getElementById('bib-f-illustrator').value = boek.illustrator||'';
     document.getElementById('bib-f-uitgeverij').value = boek.uitgeverij||'';
     document.getElementById('bib-f-notities').value = boek.notities||'';
     document.getElementById('bib-f-aantal').value = boek.aantal||1;
@@ -1171,8 +1512,12 @@ async function haalBibCoverOp() {
   const btn = document.querySelector('#modal-bib-form .isbn-row .btn');
   btn.textContent = '⏳ Ophalen...'; btn.disabled = true;
   try {
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-    const data = await res.json();
+    let res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=3`);
+    let data = await res.json();
+    if (!data.totalItems || data.totalItems === 0) {
+      res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${isbn}&maxResults=3`);
+      data = await res.json();
+    }
     if (data.totalItems > 0) {
       const info = data.items[0].volumeInfo;
       if (info.title && !document.getElementById('bib-f-titel').value) document.getElementById('bib-f-titel').value = info.title;
@@ -1234,15 +1579,28 @@ function negerBibDuplicaat() {
 
 async function slaaBibBoekOp(e) {
   e.preventDefault();
+  // Valideer eigenaarschap
+  if (document.getElementById('bib-f-eigenaar').value === 'Andere') {
+    if (!checkEigenaarNaam()) {
+      return;
+    }
+    const naam = document.getElementById('bib-f-eigenaar-naam').value.trim();
+    if (!naam) {
+      showToast('Vul een naam in bij Eigenaarschap → Andere');
+      return;
+    }
+  }
   const btn = document.getElementById('bib-submit-btn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Opslaan...';
   const data = {
     titel: document.getElementById('bib-f-titel').value.trim(),
     auteur: document.getElementById('bib-f-auteur').value.trim(),
+    illustrator: document.getElementById('bib-f-illustrator').value.trim(),
     uitgeverij: document.getElementById('bib-f-uitgeverij').value.trim(),
     isbn: document.getElementById('bib-f-isbn').value.trim(),
     taal: document.getElementById('bib-f-taal').value,
     aantal: parseInt(document.getElementById('bib-f-aantal').value)||1,
+    eigenaar: getEigenaarWaarde() || 'School',
     types: getChecked('bib-ms-types'),
     themas: getChecked('bib-ms-themas'),
     leeftijd: getChecked('bib-ms-leeftijd').map(Number),
@@ -1299,23 +1657,39 @@ async function verwijderBibBoek() {
 // ========== EXCEL IMPORT/EXPORT BIB ==========
 function downloadBibTemplate() {
   const uitleg = [{
-    Titel: '← Verplicht veld', Auteur: '← Verplicht veld', Uitgeverij: 'optioneel',
-    ISBN: 'optioneel', Taal: 'bv. Nederlands', Aantal: '(getal)',
-    Types: 'bv. Jeugdroman, Prentenboek (komma-gescheiden)',
-    Themas: "bv. Vriendschap, Natuur (komma-gescheiden)",
+    Titel: '← Verplicht veld',
+    Auteur: '← Verplicht veld',
+    Illustrator: 'optioneel',
+    Uitgeverij: 'optioneel',
+    ISBN: 'optioneel',
+    Taal: 'bv. Nederlands',
     Leeftijd: 'bv. 6, 7, 8 (komma-gescheiden)',
     AVI: 'bv. AVI M4',
+    Types: 'bv. Jeugdroman (komma-gescheiden)',
+    Themas: 'bv. Vriendschap, Natuur (komma-gescheiden)',
     Extra: 'bv. Bekroond, Verfilmd (komma-gescheiden)',
     Locaties: 'bv. Schoolbib hoofdschool, Klas 3 (komma-gescheiden)',
+    Eigenaarschap: 'bv. School, Leerkracht, Leerling...',
+    Aantal: '(getal, standaard 1)',
     Notities: 'optioneel'
   },{
-    Titel: 'De brief voor de koning', Auteur: 'Tonke Dragt', Uitgeverij: 'Leopold',
-    ISBN: '9789025876401', Taal: 'Nederlands', Aantal: 2,
-    Types: 'Jeugdroman', Themas: 'Moed, Avontuur', Leeftijd: '10, 11, 12',
-    AVI: 'AVI E6', Extra: 'Klassieker', Locaties: 'Schoolbib hoofdschool', Notities: 'Aanrader!'
+    Titel: 'De brief voor de koning',
+    Auteur: 'Tonke Dragt',
+    Illustrator: '',
+    Uitgeverij: 'Leopold',
+    ISBN: '9789025876401',
+    Taal: 'Nederlands',
+    Leeftijd: '10, 11, 12',
+    AVI: 'AVI E6',
+    Types: 'Jeugdroman',
+    Themas: 'Moed, Avontuur',
+    Extra: 'Klassieker',
+    Locaties: 'Schoolbib hoofdschool',
+    Eigenaarschap: 'School',
+    Aantal: 2,
+    Notities: 'Aanrader!'
   }];
   const ws = XLSX.utils.json_to_sheet(uitleg);
-  // Maak uitlegkolom grijs
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Boeken');
   XLSX.writeFile(wb, 'bib-template.xlsx');
@@ -1360,6 +1734,7 @@ async function importeerBibExcel(e) {
           avi: (lijsten.avi||[]).includes(aviVal) ? aviVal : '',
           extra: filterLijst(rij.Extra, 'extra'),
           locaties: filterLijst(rij.Locaties, 'locaties'),
+          eigenaar: String(rij.Eigenaarschap||'School').trim() || 'School',
           notities: String(rij.Notities||'').trim(),
           coverUrl: '', aangepastOp: new Date().toISOString()
         };
@@ -1379,13 +1754,27 @@ async function importeerBibExcel(e) {
 
 function exportBibExcel() {
   if (!bibBoeken.length) { showToast('Geen boeken om te exporteren'); return; }
-  const rows = bibBoeken.map(b => ({
-    Titel: b.titel, Auteur: b.auteur, Uitgeverij: b.uitgeverij, ISBN: b.isbn,
-    Taal: b.taal, Aantal: b.aantal, Types: (b.types||[]).join(', '),
-    Locaties: (b.locaties||[]).join(', '),
-    Status: b.uitgeleendAan ? 'Uitgeleend aan: ' + b.uitgeleendAan : 'Beschikbaar',
-    Notities: b.notities
-  }));
+  const rows = bibBoeken.map(b => {
+    const uitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan}] : []);
+    const beschikbaar = (b.aantal||1) - uitleningen.length;
+    return {
+      Titel: b.titel,
+      Auteur: b.auteur,
+      Illustrator: b.illustrator||'',
+      Uitgeverij: b.uitgeverij||'',
+      ISBN: b.isbn||'',
+      Taal: b.taal||'',
+      Leeftijd: (Array.isArray(b.leeftijd)?b.leeftijd:(b.leeftijd?[b.leeftijd]:[])).join(', '),
+      AVI: b.avi||'',
+      Types: (b.types||[]).join(', '),
+      Themas: (b.themas||[]).join(', '),
+      Extra: (b.extra||[]).join(', '),
+      Locaties: (b.locaties||[]).join(', '),
+      Eigenaarschap: b.eigenaar||'School',
+      Aantal: b.aantal||1,
+      Notities: b.notities||''
+    };
+  });
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Bib');
@@ -1393,21 +1782,524 @@ function exportBibExcel() {
   showToast('Excel gedownload!');
 }
 
+// ========== GEBRUIKERS & LOGIN ==========
+let huidigGebruiker = null;
+let gebruikers = []; // [{naam, wachtwoord}]
+
+async function laadGebruikers() {
+  if (useFirebase) {
+    const snap = await db.collection('gebruikers').get();
+    gebruikers = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    // Maak standaard beheerder aan als er nog geen gebruikers zijn
+    if (gebruikers.length === 0) {
+      const defaultBeheerder = {naam: 'Beheerder', wachtwoord: '9050', rol: 'beheerder'};
+      const ref = await db.collection('gebruikers').add(defaultBeheerder);
+      defaultBeheerder.id = ref.id;
+      gebruikers.push(defaultBeheerder);
+    }
+  } else {
+    gebruikers = JSON.parse(localStorage.getItem('gebruikers')||'[]');
+    if (gebruikers.length === 0) {
+      const defaultBeheerder = {id: 'user_beheerder', naam: 'Beheerder', wachtwoord: '9050', rol: 'beheerder'};
+      gebruikers.push(defaultBeheerder);
+      localStorage.setItem('gebruikers', JSON.stringify(gebruikers));
+    }
+  }
+  vulLoginDropdown();
+  renderGebruikersLijst();
+}
+
+function vulLoginDropdown() {
+  // Niet meer nodig - login via wachtwoord alleen
+}
+
+function aanmelden() {
+  const ww = document.getElementById('login-wachtwoord').value.trim();
+  // Wachtwoord = naam van gebruiker
+  // Zoek gebruiker op wachtwoord
+  let user = gebruikers.find(g => g.wachtwoord === ww);
+  // Fallback: zoek op naam
+  if (!user) user = gebruikers.find(g => g.naam.toLowerCase() === ww.toLowerCase());
+  // Geen hardcoded fallback - gebruikers worden beheerd via Firebase
+  if (!user) {
+    document.getElementById('login-fout').style.display = 'block';
+    document.getElementById('login-wachtwoord').value = '';
+    return;
+  }
+  // Check geblokkeerd
+  if (user.geblokkeerd) {
+    document.getElementById('login-fout').style.display = 'block';
+    document.getElementById('login-fout').textContent = '🚫 Dit account is geblokkeerd. Contacteer de beheerder.';
+    document.getElementById('login-wachtwoord').value = '';
+    return;
+  }
+  huidigGebruiker = user;
+  // Sla laatste aanmelding op
+  user.laastAangemeld = new Date().toISOString();
+  if (useFirebase && user.id) db.collection('gebruikers').doc(user.id).update({laastAangemeld: user.laastAangemeld}).catch(()=>{});
+  localStorage.setItem('huidigGebruiker', JSON.stringify(user));
+  document.getElementById('modal-login').classList.remove('open');
+  document.getElementById('nav-gebruiker-naam').textContent = '👤 ' + user.naam;
+  document.getElementById('beheer-aangemeld-naam').textContent = user.naam;
+  // Pas interface aan op basis van rol
+  pasInterfaceAanOpRol(user.rol||'gebruiker');
+  showToast(`Welkom, ${user.naam}! 👋`);
+}
+
+function pasInterfaceAanOpRol(rol) {
+  const isGast = rol === 'gast';
+  const isBeheerder = rol === 'beheerder';
+
+  // Toon/verberg beheer knop
+  const navBeheer = document.getElementById('nav-beheer');
+  if (navBeheer) navBeheer.style.display = isBeheerder ? '' : 'none';
+
+  // Verberg toevoegen/bewerken knoppen voor gasten
+  if (isGast) {
+    document.querySelectorAll(
+      'button[onclick*="openBoekModal"], button[onclick*="openBibBoekModal"], ' +
+      'button[onclick*="bewerkHuidigBoek"], button[onclick*="bewerkBibBoek"], ' +
+      'button[onclick*="verwijderHuidigBoek"], button[onclick*="verwijderBibBoek"], ' +
+      'button[onclick*="voegToeAanBib"], button[onclick*="voegToeAanCatalogus"], ' +
+      'button[onclick*="bulkUitlenen"], button[onclick*="openUitleen"], ' +
+      'button[onclick*="bibImportInput"], button[onclick*="exportBibExcel"], ' +
+      'button[onclick*="downloadBibTemplate"]'
+    ).forEach(btn => btn.style.display = 'none');
+  }
+
+  // Toon rol badge in nav
+  const rolLabel = document.getElementById('nav-gebruiker-naam');
+  if (rolLabel) {
+    const rolBadge = isBeheerder ? '🔑' : isGast ? '👁' : '✏️';
+    rolLabel.textContent = `${rolBadge} ${huidigGebruiker?.naam||''}`;
+  }
+}
+
+function afmelden() {
+  if (!confirm('Afmelden?')) return;
+  huidigGebruiker = null;
+  localStorage.removeItem('huidigGebruiker');
+  document.getElementById('nav-gebruiker-naam').textContent = '';
+  document.getElementById('login-wachtwoord').value = '';
+  document.getElementById('login-fout').style.display = 'none';
+  document.getElementById('modal-login').classList.add('open');
+}
+
+function checkLogin() {
+  // Herstel sessie uit localStorage
+  const opgeslagen = localStorage.getItem('huidigGebruiker');
+  if (opgeslagen) {
+    try {
+      const user = JSON.parse(opgeslagen);
+      // Verifieer dat gebruiker nog bestaat
+      if (gebruikers.find(g => g.naam === user.naam && g.wachtwoord === user.wachtwoord)) {
+        huidigGebruiker = user;
+        document.getElementById('nav-gebruiker-naam').textContent = '👤 ' + user.naam;
+        document.getElementById('beheer-aangemeld-naam').textContent = user.naam;
+        pasInterfaceAanOpRol(user.rol||'gebruiker');
+        return;
+      }
+    } catch(e) {}
+  }
+  // Toon login als er gebruikers zijn
+  if (gebruikers.length > 0) {
+    document.getElementById('modal-login').classList.add('open');
+  }
+}
+
+async function voegGebruikerToe() {
+  const inp = document.getElementById('nieuw-gebruiker-naam');
+  const naam = inp.value.trim();
+  if (!naam) { showToast('Vul een naam in'); return; }
+  if (gebruikers.find(g => g.naam === naam)) { showToast('Deze naam bestaat al'); return; }
+  const rol = document.getElementById('nieuw-gebruiker-rol')?.value || 'gebruiker';
+  const user = {naam, wachtwoord: naam, rol, aangemaaktOp: new Date().toISOString(), laastAangemeld: null, geblokkeerd: false};
+  if (useFirebase) {
+    const ref = await db.collection('gebruikers').add(user);
+    user.id = ref.id;
+    gebruikers.push(user);
+  } else {
+    user.id = 'user' + Date.now();
+    gebruikers.push(user);
+    localStorage.setItem('gebruikers', JSON.stringify(gebruikers));
+  }
+  inp.value = '';
+  vulLoginDropdown();
+  renderGebruikersLijst();
+  showToast(`"${naam}" toegevoegd ✅`);
+}
+
+async function wijzigRol(id, rol) {
+  const user = gebruikers.find(g => g.id === id);
+  if (!user) return;
+  user.rol = rol;
+  if (useFirebase) await db.collection('gebruikers').doc(id).update({rol});
+  else localStorage.setItem('gebruikers', JSON.stringify(gebruikers));
+  renderGebruikersLijst();
+  showToast('Rol aangepast ✅');
+}
+
+async function toggleBlok(id) {
+  const user = gebruikers.find(g => g.id === id);
+  if (!user) return;
+  user.geblokkeerd = !user.geblokkeerd;
+  if (useFirebase) await db.collection('gebruikers').doc(id).update({geblokkeerd: user.geblokkeerd});
+  else localStorage.setItem('gebruikers', JSON.stringify(gebruikers));
+  renderGebruikersLijst();
+  showToast(user.geblokkeerd ? `${user.naam} geblokkeerd 🚫` : `${user.naam} gedeblokkeerd ✅`);
+}
+
+async function hernoemGebruiker(id, oudeNaam) {
+  const nieuweNaam = prompt('Nieuwe naam voor "' + oudeNaam + '":');
+  if (!nieuweNaam || !nieuweNaam.trim() || nieuweNaam.trim() === oudeNaam) return;
+  if (gebruikers.find(g => g.naam === nieuweNaam.trim())) { showToast('Die naam bestaat al'); return; }
+  const user = gebruikers.find(g => g.id === id);
+  if (!user) return;
+  user.naam = nieuweNaam.trim();
+  user.wachtwoord = nieuweNaam.trim(); // wachtwoord = naam
+  if (useFirebase) await db.collection('gebruikers').doc(id).update({naam: user.naam, wachtwoord: user.wachtwoord});
+  else localStorage.setItem('gebruikers', JSON.stringify(gebruikers));
+  renderGebruikersLijst();
+  showToast(`Hernoemd naar "${user.naam}" ✅`);
+}
+
+async function verwijderGebruiker(id, naam) {
+  if (!confirm(`"${naam}" verwijderen?`)) return;
+  if (useFirebase) await db.collection('gebruikers').doc(id).delete();
+  gebruikers = gebruikers.filter(g => g.id !== id);
+  if (!useFirebase) localStorage.setItem('gebruikers', JSON.stringify(gebruikers));
+  vulLoginDropdown();
+  renderGebruikersLijst();
+  showToast(`"${naam}" verwijderd`);
+}
+
+function renderGebruikersLijst() {
+  const el = document.getElementById('gebruikers-lijst');
+  if (!el) return;
+
+  const zoek = (document.getElementById('gebruiker-zoek')?.value||'').toLowerCase();
+  const filterRol = document.getElementById('gebruiker-filter-rol')?.value||'';
+  const sorteer = document.getElementById('gebruiker-sorteer')?.value||'naam';
+
+  let lijst = gebruikers.filter(g => {
+    if (zoek && !g.naam.toLowerCase().includes(zoek)) return false;
+    if (filterRol && (g.rol||'gebruiker') !== filterRol) return false;
+    return true;
+  });
+
+  lijst.sort((a,b) => {
+    if (sorteer === 'naam') return a.naam.localeCompare(b.naam,'nl');
+    if (sorteer === 'naam-z') return b.naam.localeCompare(a.naam,'nl');
+    if (sorteer === 'rol') return (a.rol||'').localeCompare(b.rol||'');
+    if (sorteer === 'datum') return new Date(b.aangemaaktOp||0) - new Date(a.aangemaaktOp||0);
+    if (sorteer === 'aangemeld') return new Date(b.laastAangemeld||0) - new Date(a.laastAangemeld||0);
+    return 0;
+  });
+
+  const count = document.getElementById('gebruiker-count');
+  if (count) count.textContent = lijst.length + ' gebruiker' + (lijst.length !== 1 ? 's' : '');
+
+  const rolInfo = {beheerder:{label:'🔑 Beheerder',kleur:'#7a4f1e',bg:'#f0d9b5'}, gebruiker:{label:'✏️ Gebruiker',kleur:'#155724',bg:'#d4edda'}, gast:{label:'👁 Gast',kleur:'#004085',bg:'#cce5ff'}};
+
+  if (!lijst.length) {
+    el.innerHTML = `<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--ink3)">Geen gebruikers gevonden</td></tr>`;
+    return;
+  }
+
+  el.innerHTML = lijst.map(g => {
+    const rol = g.rol||'gebruiker';
+    const ri = rolInfo[rol]||rolInfo.gebruiker;
+    const isGeblokkeerd = g.geblokkeerd || false;
+    const laastAangemeld = g.laastAangemeld ? new Date(g.laastAangemeld).toLocaleDateString('nl-BE') : '—';
+    const aangemaaktOp = g.aangemaaktOp ? new Date(g.aangemaaktOp).toLocaleDateString('nl-BE') : '—';
+    return `<tr style="border-bottom:1px solid var(--paper2);${isGeblokkeerd?'opacity:0.5':''}">
+      <td style="padding:8px 12px">
+        <div style="font-weight:500;color:var(--ink)">${g.naam}</div>
+        <div style="font-size:11px;color:var(--ink3)">Aangemaakt: ${aangemaaktOp}</div>
+      </td>
+      <td style="padding:8px 12px">
+        <select onchange="wijzigRol('${g.id}',this.value)" style="font-size:12px;padding:3px 6px;border:1px solid var(--paper3);border-radius:4px;background:${ri.bg};color:${ri.kleur};font-weight:500">
+          <option value="gebruiker" ${rol==='gebruiker'?'selected':''}>✏️ Gebruiker</option>
+          <option value="beheerder" ${rol==='beheerder'?'selected':''}>🔑 Beheerder</option>
+          <option value="gast" ${rol==='gast'?'selected':''}>👁 Gast</option>
+        </select>
+      </td>
+      <td style="padding:8px 12px">
+        <span style="font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;background:${isGeblokkeerd?'#f8d7da':'#d4edda'};color:${isGeblokkeerd?'#721c24':'#155724'}">
+          ${isGeblokkeerd?'🚫 Geblokkeerd':'✅ Actief'}
+        </span>
+      </td>
+      <td style="padding:8px 12px;font-size:12px;color:var(--ink3)">${laastAangemeld}</td>
+      <td style="padding:8px 12px">
+        <div style="display:flex;gap:4px">
+          <button title="${isGeblokkeerd?'Deblokkeren':'Blokkeren'}" onclick="toggleBlok('${g.id}')" style="background:none;border:1px solid var(--paper3);border-radius:4px;padding:3px 7px;cursor:pointer;font-size:12px">${isGeblokkeerd?'✅':'🚫'}</button>
+          <button title="Naam wijzigen" onclick="hernoemGebruiker('${g.id}','${g.naam}')" style="background:none;border:1px solid var(--paper3);border-radius:4px;padding:3px 7px;cursor:pointer;font-size:12px">✏️</button>
+          <button title="Verwijderen" onclick="verwijderGebruiker('${g.id}','${g.naam}')" style="background:none;border:1px solid #f5c6cb;border-radius:4px;padding:3px 7px;cursor:pointer;font-size:12px;color:#721c24">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ========== UITSTAANDE UITLENINGEN ==========
+async function laadUitstaandeUitleningen() {
+  const container = document.getElementById('uitstaand-container');
+  if (!container) return;
+  const uitstaand = bibBoeken.filter(b => {
+    const uitleningen = b.uitleningen || (b.uitgeleendAan ? [b] : []);
+    return uitleningen.length > 0 && (b.aantal||1) - uitleningen.length < (b.aantal||1);
+  });
+  if (!uitstaand.length) {
+    container.innerHTML = '<div class="empty" style="text-align:center;padding:2rem;color:var(--ink3)"><p>Geen boeken momenteel uitgeleend. 🎉</p></div>';
+    return;
+  }
+  const nu = new Date();
+  container.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="background:var(--ink);color:var(--paper)">
+      <th style="padding:8px 10px;text-align:left">Boek</th>
+      <th style="padding:8px 10px;text-align:left">Uitgeleend aan</th>
+      <th style="padding:8px 10px;text-align:left">Locatie</th>
+      <th style="padding:8px 10px;text-align:left">Sinds</th>
+      <th style="padding:8px 10px;text-align:left">Dagen</th>
+    </tr></thead>
+    <tbody>${uitstaand.flatMap(b => {
+      const uitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan, vanuit:b.uitgeleendVanuit, op:b.uitgeleendOp}] : []);
+      return uitleningen.map(u => {
+        const dagen = u.op ? Math.floor((nu - new Date(u.op)) / 86400000) : '?';
+        const kleur = dagen > 21 ? '#9b2335' : dagen > 14 ? '#c4873a' : 'var(--ink2)';
+        return `<tr style="border-bottom:1px solid var(--paper3)">
+          <td style="padding:7px 10px;font-weight:500">${b.titel}</td>
+          <td style="padding:7px 10px">${u.naam||''}</td>
+          <td style="padding:7px 10px;color:var(--ink3)">${u.vanuit||''}</td>
+          <td style="padding:7px 10px;color:var(--ink3)">${u.op ? new Date(u.op).toLocaleDateString('nl-BE') : '—'}</td>
+          <td style="padding:7px 10px;font-weight:600;color:${kleur}">${dagen} d${dagen > 14 ? ' ⚠️' : ''}</td>
+        </tr>`;
+      });
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function exportUitstaandExcel() {
+  const uitstaand = bibBoeken.filter(b => {
+    const uitleningen = b.uitleningen || (b.uitgeleendAan ? [b] : []);
+    return uitleningen.length > 0;
+  });
+  const nu = new Date();
+  const rows = uitstaand.flatMap(b => {
+    const uitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan, vanuit:b.uitgeleendVanuit, op:b.uitgeleendOp}] : []);
+    return uitleningen.map(u => ({
+      Boek: b.titel, Auteur: b.auteur||'',
+      Uitgeleend_aan: u.naam||'', Locatie: u.vanuit||'',
+      Datum_uitleen: u.op ? new Date(u.op).toLocaleDateString('nl-BE') : '',
+      Dagen: u.op ? Math.floor((nu - new Date(u.op)) / 86400000) : ''
+    }));
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Uitstaand');
+  XLSX.writeFile(wb, 'uitstaande-uitleningen.xlsx');
+  showToast('Excel gedownload!');
+}
+
+// ========== STATISTIEKEN ==========
+function toonStatTab(tab) {
+  document.querySelectorAll('.stat-tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('stat-tab-' + tab).classList.add('active');
+  document.querySelectorAll('#beheer-tab-statistieken .tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['algemeen','bib','uitlenen','favorieten'][i] === tab);
+  });
+  renderStatistieken(tab);
+}
+
+function statBar(label, waarde, max, kleur='var(--accent2)') {
+  const pct = max ? Math.round(waarde/max*100) : 0;
+  return `<div class="stat-bar-wrap">
+    <div class="stat-bar-label"><span>${label}</span><span>${waarde}</span></div>
+    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${kleur}"></div></div>
+  </div>`;
+}
+
+function statKaart(nummer, label, kleur='var(--accent)') {
+  return `<div class="stat-card"><div class="stat-number" style="color:${kleur}">${nummer}</div><div class="stat-label">${label}</div></div>`;
+}
+
+async function renderStatistieken(tab) {
+  const el = document.getElementById('stat-tab-' + tab);
+  if (!el) return;
+  el.innerHTML = '<p style="color:var(--ink3)">Laden...</p>';
+
+  // Haal logs op
+  let logs = [];
+  if (useFirebase) {
+    const snap = await db.collection('uitleenLog').get();
+    logs = snap.docs.map(d => d.data());
+  }
+
+  if (tab === 'algemeen') {
+    const totaalBib = bibBoeken.length;
+    const totaalFav = boeken.length;
+    const uitstaand = bibBoeken.filter(b => (b.uitleningen||[]).length > 0 || b.uitgeleendAan).length;
+    const totaalExemplaren = bibBoeken.reduce((s,b) => s+(b.aantal||1), 0);
+    el.innerHTML = `
+      <div class="stat-grid">
+        ${statKaart(totaalBib, 'Boeken in Schoolbib')}
+        ${statKaart(totaalFav, 'Boeken in Favorieten', '#2d6a4f')}
+        ${statKaart(totaalExemplaren, 'Totaal exemplaren')}
+        ${statKaart(uitstaand, 'Momenteel uitgeleend', '#9b2335')}
+        ${statKaart(logs.filter(l=>l.actie==='uitleen').length, 'Totaal uitleningen ooit')}
+        ${statKaart(gebruikers.length, 'Geregistreerde gebruikers')}
+      </div>`;
+  }
+
+  if (tab === 'bib') {
+    // Per locatie
+    const locatieCount = {};
+    bibBoeken.forEach(b => (b.locaties||[]).forEach(l => { locatieCount[l] = (locatieCount[l]||0)+1; }));
+    const locSorted = Object.entries(locatieCount).sort((a,b)=>b[1]-a[1]);
+    const maxLoc = locSorted[0]?.[1]||1;
+
+    // Per eigenaar
+    const eigenaarCount = {};
+    bibBoeken.forEach(b => { const e = b.eigenaar||'School'; eigenaarCount[e]=(eigenaarCount[e]||0)+1; });
+    const eigenSorted = Object.entries(eigenaarCount).sort((a,b)=>b[1]-a[1]);
+
+    // Per type
+    const typeCount = {};
+    bibBoeken.forEach(b => (b.types||[]).forEach(t => { typeCount[t]=(typeCount[t]||0)+1; }));
+    const typeSorted = Object.entries(typeCount).sort((a,b)=>b[1]-a[1]);
+
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+        <div class="stat-card"><h4 style="margin-bottom:1rem;font-family:var(--font-title)">📍 Per locatie</h4>
+          ${locSorted.map(([l,n])=>statBar(l,n,maxLoc)).join('') || '<p style="color:var(--ink3);font-size:13px">Geen data</p>'}
+        </div>
+        <div class="stat-card"><h4 style="margin-bottom:1rem;font-family:var(--font-title)">👤 Per eigenaarschap</h4>
+          ${eigenSorted.map(([e,n])=>statBar(e,n,eigenSorted[0]?.[1]||1,'#2d6a4f')).join('') || '<p style="color:var(--ink3);font-size:13px">Geen data</p>'}
+        </div>
+      </div>
+      <div class="stat-card"><h4 style="margin-bottom:1rem;font-family:var(--font-title)">📖 Per type boek</h4>
+        <div style="columns:2;gap:1.5rem">
+          ${typeSorted.map(([t,n])=>statBar(t,n,typeSorted[0]?.[1]||1,'#7a4f1e')).join('') || '<p style="color:var(--ink3);font-size:13px">Geen data</p>'}
+        </div>
+      </div>`;
+  }
+
+  if (tab === 'uitlenen') {
+    const uitstaand = bibBoeken.filter(b => (b.uitleningen||[b.uitgeleendAan]).filter(Boolean).length > 0);
+    const meestUitgeleend = [...bibBoeken]
+      .filter(b => b.uitleenGeschiedenis?.length)
+      .sort((a,b) => (b.uitleenGeschiedenis||[]).length - (a.uitleenGeschiedenis||[]).length)
+      .slice(0, 10);
+    const maxHist = meestUitgeleend[0]?.uitleenGeschiedenis?.length || 1;
+
+    // Per gebruiker uit logs
+    const userCount = {};
+    logs.filter(l=>l.actie==='uitleen').forEach(l => { userCount[l.naam]=(userCount[l.naam]||0)+1; });
+    const userSorted = Object.entries(userCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+    el.innerHTML = `
+      <div class="stat-grid" style="margin-bottom:1.5rem">
+        ${statKaart(uitstaand.length, 'Momenteel uitgeleend', '#9b2335')}
+        ${statKaart(logs.filter(l=>l.actie==='uitleen').length, 'Totale uitleningen')}
+        ${statKaart(logs.filter(l=>l.actie==='retour').length, 'Totale teruggaven', '#2d6a4f')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+        <div class="stat-card"><h4 style="margin-bottom:1rem;font-family:var(--font-title)">📚 Meest uitgeleende boeken</h4>
+          ${meestUitgeleend.map(b=>statBar(b.titel,(b.uitleenGeschiedenis||[]).length,maxHist,'#9b2335')).join('') || '<p style="color:var(--ink3);font-size:13px">Nog geen geschiedenis</p>'}
+        </div>
+        <div class="stat-card"><h4 style="margin-bottom:1rem;font-family:var(--font-title)">👤 Meest actieve leners</h4>
+          ${userSorted.map(([n,c])=>statBar(n,c,userSorted[0]?.[1]||1,'#c4873a')).join('') || '<p style="color:var(--ink3);font-size:13px">Geen data in log</p>'}
+        </div>
+      </div>`;
+  }
+
+  if (tab === 'favorieten') {
+    // Per thema
+    const themaCount = {};
+    boeken.forEach(b => (b.themas||[]).forEach(t => { themaCount[t]=(themaCount[t]||0)+1; }));
+    const themaSorted = Object.entries(themaCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
+
+    // Per klas
+    const klasCount = {};
+    boeken.forEach(b => (b.klassen||[]).forEach(k => { klasCount[k]=(klasCount[k]||0)+1; }));
+    const klasSorted = Object.entries(klasCount).sort((a,b)=>b[1]-a[1]);
+
+    // Gemiddelde beoordeling
+    const metSterren = boeken.filter(b => b.sterren);
+    const gemSterren = metSterren.length ? (metSterren.reduce((s,b)=>s+b.sterren,0)/metSterren.length).toFixed(1) : '—';
+
+    // Top beoordeeld
+    const topBoeken = [...boeken].filter(b=>b.sterren===5).slice(0,5);
+
+    el.innerHTML = `
+      <div class="stat-grid" style="margin-bottom:1.5rem">
+        ${statKaart(boeken.length, 'Favoriete boeken')}
+        ${statKaart(gemSterren + ' ★', 'Gemiddelde beoordeling', '#c4873a')}
+        ${statKaart(boeken.filter(b=>b.sterren===5).length, 'Boeken met 5 sterren', '#c4873a')}
+        ${statKaart([...new Set(boeken.flatMap(b=>b.themas||[]))].length, "Unieke themas")}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+        <div class="stat-card"><h4 style="margin-bottom:1rem;font-family:var(--font-title)">🏷️ Populairste thema's</h4>
+          ${themaSorted.map(([t,n])=>statBar(t,n,themaSorted[0]?.[1]||1)).join('') || '<p style="color:var(--ink3);font-size:13px">Geen data</p>'}
+        </div>
+        <div class="stat-card"><h4 style="margin-bottom:1rem;font-family:var(--font-title)">🏫 Per klas</h4>
+          ${klasSorted.map(([k,n])=>statBar(k,n,klasSorted[0]?.[1]||1,'#2d6a4f')).join('') || '<p style="color:var(--ink3);font-size:13px">Geen klassen ingevuld</p>'}
+        </div>
+      </div>
+      ${topBoeken.length ? `<div class="stat-card" style="margin-top:1.5rem"><h4 style="margin-bottom:0.75rem;font-family:var(--font-title)">⭐ Top 5 sterren boeken</h4>
+        ${topBoeken.map(b=>`<div style="padding:4px 0;border-bottom:1px solid var(--paper3);font-size:13px">${b.titel} <span style="color:var(--ink3)">— ${b.auteur||''}</span></div>`).join('')}
+      </div>` : ''}`;
+  }
+}
+
+// ========== ZOEKEN OP ILLUSTRATOR ==========
+// (wordt toegevoegd in filterBoeken via bestaande zoekterm)
+
+// ========== AUTOMATISCHE BACKUP ==========
+async function autoBackup() {
+  const sleutel = 'laatste_backup';
+  const laaste = localStorage.getItem(sleutel);
+  const nu = new Date();
+  if (laaste && (nu - new Date(laaste)) < 7 * 24 * 60 * 60 * 1000) return; // max 1x per week
+  if (!useFirebase) return;
+  try {
+    const [boekenSnap, bibSnap, lijstenSnap] = await Promise.all([
+      db.collection('boeken').get(),
+      db.collection('bib').get(),
+      db.collection('lijsten').get()
+    ]);
+    const data = {
+      datum: nu.toISOString(),
+      boeken: boekenSnap.docs.map(d => ({id:d.id,...d.data()})),
+      bib: bibSnap.docs.map(d => ({id:d.id,...d.data()})),
+      lijsten: Object.fromEntries(lijstenSnap.docs.map(d => [d.id, d.data().items]))
+    };
+    await db.collection('backups').doc('auto_' + nu.toISOString().split('T')[0]).set(data);
+    localStorage.setItem(sleutel, nu.toISOString());
+    console.log('Auto backup gemaakt:', nu.toLocaleDateString('nl-BE'));
+  } catch(e) { console.log('Auto backup mislukt:', e); }
+}
+
 // ========== INIT ==========
 async function init() {
   if (useFirebase) {
     await laadLijsten();
+    await laadGebruikers();
     laadBoeken();
     laadBib();
+    autoBackup();
   } else {
     lijsten = JSON.parse(JSON.stringify(localLijsten));
     boeken = JSON.parse(JSON.stringify(localBoeken));
+    await laadGebruikers();
     renderBoeken(boeken);
     updateFilterOpties();
     renderBeheer();
     laadBib();
     showToast('Demo modus — koppel Firebase voor schoolgebruik', 4000);
   }
+  // Check login na laden
+  setTimeout(checkLogin, 500);
 }
 
 // ========== FIREBASE LISTENERS ==========
@@ -1419,6 +2311,7 @@ function laadBoeken() {
 }
 
 async function laadLijsten() {
+  try { const wwDoc = await db.collection('instellingen').doc('wachtwoord').get(); if (wwDoc.exists && wwDoc.data().wachtwoord) huidigWachtwoord = wwDoc.data().wachtwoord; } catch(e) {}
   const snap = await db.collection('lijsten').get();
   if (snap.empty) {
     // Initialiseer met standaard lijsten
@@ -1430,6 +2323,13 @@ async function laadLijsten() {
   } else {
     lijsten = {};
     snap.docs.forEach(d => { lijsten[d.id] = d.data().items || []; });
+    // Voeg ontbrekende lijsten toe die later toegevoegd werden
+    for (const [key, val] of Object.entries(localLijsten)) {
+      if (!lijsten[key]) {
+        lijsten[key] = val;
+        await db.collection('lijsten').doc(key).set({items: val});
+      }
+    }
   }
   updateFilterOpties();
   renderBeheer();
@@ -1438,12 +2338,15 @@ async function laadLijsten() {
 // ========== RENDER BOEKEN ==========
 function renderBoeken(lijst) {
   const grid = document.getElementById('book-grid');
-  document.getElementById('result-count').textContent = lijst.length + ' boek' + (lijst.length !== 1 ? 'en' : '');
-  if (!lijst.length) {
+  const totaal = lijst.length;
+  document.getElementById('result-count').textContent = totaal + ' boek' + (totaal !== 1 ? 'en' : '');
+  let teLaten = lijst;
+
+  if (!teLaten.length) {
     grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><h3>Geen boeken gevonden</h3><p>Pas je filters aan of voeg een nieuw boek toe.</p></div>';
     return;
   }
-  grid.innerHTML = lijst.map(b => `
+  grid.innerHTML = teLaten.map(b => `
     <div class="book-card" onclick="toonDetail('${b.id}')">
       <div class="book-cover">
         ${b.coverUrl ? `<img src="${b.coverUrl}" alt="${b.titel}" onerror="this.style.display='none'">` : '📖'}
@@ -1451,7 +2354,7 @@ function renderBoeken(lijst) {
       <div class="book-info">
         <div class="stars">${'★'.repeat(b.sterren || 0)}${'☆'.repeat(5-(b.sterren||0))}</div>
         <div class="book-title">${b.titel}</div>
-        <div class="book-author">${b.auteur || ''}</div>
+        <div class="book-author">${b.auteur || ''}${b.illustrator?' · ill. '+b.illustrator:''}</div>
         <div class="book-tags">
           ${(b.types||[]).slice(0,1).map(t=>`<span class="tag type">${t}</span>`).join('')}
           ${(b.themas||[]).slice(0,1).map(t=>`<span class="tag thema">${t}</span>`).join('')}
@@ -1510,6 +2413,7 @@ function updateFilterBtnLabel(id, defaultLabel) {
 
 function filterBoeken() {
   const zoek = (document.getElementById('zoek').value||'').toLowerCase();
+
   const types = getFilterChecked('f-type');
   const themas = getFilterChecked('f-thema');
   const klassen = getFilterChecked('f-klas');
@@ -1530,7 +2434,7 @@ function filterBoeken() {
   updateFilterBtnLabel('f-sterren', 'Beoordeling');
 
   const res = boeken.filter(b => {
-    if (zoek && !`${b.titel} ${b.auteur} ${b.isbn}`.toLowerCase().includes(zoek)) return false;
+    if (zoek && !`${b.titel} ${b.auteur} ${b.isbn} ${b.illustrator||''}`.toLowerCase().includes(zoek)) return false;
     if (types.length && !types.some(t => (b.types||[]).includes(t))) return false;
     if (themas.length && !themas.some(t => (b.themas||[]).includes(t))) return false;
     if (klassen.length && !klassen.some(k => (b.klassen||[]).includes(k))) return false;
@@ -1595,6 +2499,7 @@ function toonDetail(id) {
 
   meta.innerHTML = `
     ${rij('Auteur', b.auteur)}
+    ${rij('Illustrator', b.illustrator)}
     ${rij('Uitgeverij', b.uitgeverij)}
     ${rij('ISBN', b.isbn)}
     ${rij('Taal', b.taal)}
@@ -1669,7 +2574,7 @@ function openBoekModal(boek = null) {
   document.getElementById('form-title').textContent = boek ? 'Boek bewerken' : 'Boek toevoegen';
 
   // Reset form
-  ['f-isbn','f-titel','f-auteur','f-uitgeverij','f-notities'].forEach(id => document.getElementById(id).value = '');
+  ['f-isbn','f-titel','f-auteur','f-illustrator','f-uitgeverij','f-notities'].forEach(id => document.getElementById(id).value = '');
   document.querySelectorAll('#ms-leeftijd input').forEach(cb => cb.checked = false);
   verwijderCover();
 
@@ -1689,6 +2594,7 @@ function openBoekModal(boek = null) {
     document.getElementById('f-isbn').value = boek.isbn||'';
     document.getElementById('f-titel').value = boek.titel||'';
     document.getElementById('f-auteur').value = boek.auteur||'';
+    document.getElementById('f-illustrator').value = boek.illustrator||'';
     document.getElementById('f-uitgeverij').value = boek.uitgeverij||'';
     document.getElementById('f-notities').value = boek.notities||'';
     const leeftijdArr = Array.isArray(boek.leeftijd) ? boek.leeftijd : (boek.leeftijd ? [boek.leeftijd] : []);
@@ -1735,9 +2641,14 @@ async function haalCoverOp() {
   const btn = document.querySelector('#modal-form .isbn-row .btn') || document.querySelector('.isbn-row .btn');
   btn.textContent = '⏳ Ophalen...'; btn.disabled = true;
   try {
-    // Google Books API - veel betere dekking voor Nederlandstalige boeken
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-    const data = await res.json();
+    // Google Books API
+    let res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=3`);
+    let data = await res.json();
+    // Fallback: zoek ook zonder isbn: prefix
+    if (!data.totalItems || data.totalItems === 0) {
+      res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${isbn}&maxResults=3`);
+      data = await res.json();
+    }
     if (data.totalItems > 0) {
       const info = data.items[0].volumeInfo;
       // Titel
@@ -1879,9 +2790,9 @@ function zoekOpGoogleImages() {
 document.addEventListener('paste', function(e) {
   const form = document.getElementById('modal-form');
   const bibForm = document.getElementById('modal-bib-form');
-  if (form.classList.contains('open')) {
-    // catalogus form handled below
-  } else if (bibForm && bibForm.classList.contains('open')) {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  if (bibForm && bibForm.classList.contains('open')) {
     for (const item of items) {
       if (item.type.startsWith('image/')) {
         const file = item.getAsFile();
@@ -1895,9 +2806,6 @@ document.addEventListener('paste', function(e) {
     return;
   }
   if (!form.classList.contains('open')) return;
-  // Afbeelding geplakt?
-  const items = e.clipboardData?.items;
-  if (!items) return;
   for (const item of items) {
     if (item.type.startsWith('image/')) {
       const file = item.getAsFile();
@@ -1919,6 +2827,7 @@ async function slaBoekOp(e) {
   const data = {
     titel: document.getElementById('f-titel').value.trim(),
     auteur: document.getElementById('f-auteur').value.trim(),
+    illustrator: document.getElementById('f-illustrator').value.trim(),
     uitgeverij: document.getElementById('f-uitgeverij').value.trim(),
     isbn: document.getElementById('f-isbn').value.trim(),
     taal: document.getElementById('f-taal-form').value,
@@ -2133,47 +3042,60 @@ async function bevestigSamenvoegen() {
 }
 
 // ========== BEHEER ==========
+let actiefBeheerKey = null;
+
 function renderBeheer() {
-  const namen = {
-    types: 'Types boek',
-    themas: "Thema's",
-    klassen: 'Klassen',
-    talen: 'Talen',
-    avi: 'AVI niveaus',
-    extra: 'Extra',
-    locaties: 'Locaties (Bib)'
-  };
-  const grid = document.getElementById('beheer-grid');
-  grid.innerHTML = Object.entries(namen).map(([key, naam]) => `
-    <div class="beheer-card">
-      <h3 style="display:flex;align-items:center;justify-content:space-between">
-        <span>${naam}</span>
-        <div style="display:flex;gap:6px;align-items:center">
-          <small style="font-size:11px;color:var(--ink3);font-family:var(--font-body);font-weight:400">sleep om te herordenen</small>
-          <button class="btn btn-secondary btn-sm" onclick="sorteerAlfabetisch('${key}')" title="Alfabetisch sorteren">A→Z</button>
-        </div>
-      </h3>
-      <div id="lijst-${key}">
-        ${(lijsten[key]||[]).map((item,i) => `
-          <div class="beheer-item" draggable="true"
-            ondragstart="dragStart(event,'${key}',${i})"
-            ondragover="dragOver(event)"
-            ondragleave="dragLeave(event)"
-            ondrop="dragDrop(event,'${key}',${i})">
-            <span class="drag-handle" title="Sleep om te herordenen">⠿</span>
-            <span style="flex:1">${item}</span>
-            <button class="btn btn-secondary btn-sm" onclick="bewerkItem('${key}','${item.replace(/'/g,"\'")}',this)" title="Bewerken">✏️</button>
-            <button class="btn btn-secondary btn-sm" onclick="openSamenvoegen('${key}','${item.replace(/'/g,"\'")}')">⇒</button>
-            <button class="btn btn-secondary btn-sm" onclick="verwijderItem('${key}','${item.replace(/'/g,"\'")}')">✕</button>
-          </div>
-        `).join('')}
-      </div>
-      <div class="add-row">
-        <input type="text" id="nieuw-${key}" placeholder="Nieuw item..." onkeydown="if(event.key==='Enter'){event.preventDefault();voegToe('${key}')}">
-        <button class="btn btn-primary btn-sm" onclick="voegToe('${key}')">+</button>
+  const namen = {types:'Types boek',themas:"Thema's",klassen:'Klassen',talen:'Talen',avi:'AVI niveaus',extra:'Extra',locaties:'Locaties (Bib)',eigenaarschap:'Eigenaarschap (Bib)'};
+  const sidebar = document.getElementById('beheer-sidebar');
+  if (!sidebar) return;
+  sidebar.innerHTML = Object.entries(namen).map(([key, naam]) =>
+    '<div class="beheer-sidebar-item ' + (actiefBeheerKey===key?'active':'') + '" onclick="toonBeheerCategorie(\'' + key + '\')">' +
+    naam + '<span class="count">' + (lijsten[key]||[]).length + '</span></div>'
+  ).join('');
+  if (actiefBeheerKey) toonBeheerCategorie(actiefBeheerKey);
+  else document.getElementById('beheer-content-panel').innerHTML = '<p style="color:var(--ink3);font-size:14px">← Kies een categorie links</p>';
+}
+
+function toonBeheerCategorie(key) {
+  actiefBeheerKey = key;
+  const namen = {types:'Types boek',themas:"Thema's",klassen:'Klassen',talen:'Talen',avi:'AVI niveaus',extra:'Extra',locaties:'Locaties (Bib)',eigenaarschap:'Eigenaarschap (Bib)'};
+  const naam = namen[key]||key;
+  document.querySelectorAll('.beheer-sidebar-item').forEach(el => {
+    el.classList.toggle('active', el.textContent.trim().replace(/\d+/g,'').trim() === naam);
+  });
+  const items = lijsten[key]||[];
+  const panel = document.getElementById('beheer-content-panel');
+
+  // Bouw HTML op via template
+  const itemsHtml = items.map((item, i) => {
+    const veiligItem = item.replace(/'/g, "\'");
+    return `<div class="beheer-item" draggable="true"
+      ondragstart="dragStart(event,'${key}',${i})"
+      ondragover="dragOver(event)" ondragleave="dragLeave(event)"
+      ondrop="dragDrop(event,'${key}',${i})">
+      <span class="drag-handle">⠿</span>
+      <span style="flex:1">${item}</span>
+      <button class="btn btn-secondary btn-sm" onclick="bewerkItem('${key}','${veiligItem}',this)">✏️</button>
+      <button class="btn btn-secondary btn-sm" onclick="openSamenvoegen('${key}','${veiligItem}')">⇒</button>
+      <button class="btn btn-secondary btn-sm" onclick="verwijderItem('${key}','${veiligItem}')">✕</button>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+      <h3 style="font-family:var(--font-title);font-size:1.1rem;margin:0">${naam}</h3>
+      <div style="display:flex;gap:6px;align-items:center">
+        <small style="font-size:11px;color:var(--ink3)">sleep om te herordenen</small>
+        <button class="btn btn-secondary btn-sm" onclick="sorteerAlfabetisch('${key}')">A→Z</button>
       </div>
     </div>
-  `).join('');
+    <div id="lijst-${key}">${itemsHtml}</div>
+    <div class="add-row" style="margin-top:0.75rem">
+      <input type="text" id="nieuw-${key}" placeholder="Nieuw item..."
+        onkeydown="if(event.key==='Enter'){event.preventDefault();voegToe('${key}')}">
+      <button class="btn btn-primary btn-sm" onclick="voegToe('${key}')">+</button>
+    </div>
+  `;
 }
 
 // Drag & Drop state
@@ -2352,13 +3274,115 @@ function vraagWachtwoord(titel, uitleg, callback) {
 
 function controleerWachtwoord() {
   const inp = document.getElementById('ww-input').value;
-  if (inp === '9050') {
+  if (inp === huidigWachtwoord) {
     closeModal('modal-wachtwoord');
     if (wwCallback) { wwCallback(); wwCallback = null; }
   } else {
     document.getElementById('ww-fout').style.display = 'block';
     document.getElementById('ww-input').value = '';
     document.getElementById('ww-input').focus();
+  }
+}
+
+async function laadUitleenLog() {
+  const container = document.getElementById('uitleen-log-container');
+  if (!container) return;
+  let logs = [];
+  if (useFirebase) {
+    const snap = await db.collection('uitleenLog').orderBy('op','desc').limit(200).get();
+    logs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  } else {
+    logs = (window.localUitleenLog || []).slice().reverse();
+  }
+  if (!logs.length) {
+    container.innerHTML = '<div class="empty" style="text-align:center;padding:2rem;color:var(--ink3)"><p>Nog geen uitleningen geregistreerd.</p></div>';
+    return;
+  }
+  container.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="background:var(--ink);color:var(--paper)">
+      <th style="padding:8px 10px;text-align:left">Actie</th>
+      <th style="padding:8px 10px;text-align:left">Boek</th>
+      <th style="padding:8px 10px;text-align:left">Persoon</th>
+      <th style="padding:8px 10px;text-align:left">Locatie</th>
+      <th style="padding:8px 10px;text-align:left">Datum uitleen</th>
+      <th style="padding:8px 10px;text-align:left">Datum retour</th>
+      <th style="padding:8px 10px;text-align:left"></th>
+    </tr></thead>
+    <tbody>${logs.map(l => `<tr style="border-bottom:1px solid var(--paper3)">
+      <td style="padding:7px 10px">${l.actie === 'uitleen' ? '📤 Uitgeleend' : '↩ Teruggekeerd'}</td>
+      <td style="padding:7px 10px;font-weight:500">${l.boekTitel||''}</td>
+      <td style="padding:7px 10px">${l.naam||''}</td>
+      <td style="padding:7px 10px;color:var(--ink3)">${l.locatie||''}</td>
+      <td style="padding:7px 10px;color:var(--ink3)">${l.datumUitleen ? new Date(l.datumUitleen).toLocaleDateString('nl-BE') : (l.actie==='uitleen' ? new Date(l.op).toLocaleDateString('nl-BE') : '—')}</td>
+      <td style="padding:7px 10px;color:var(--ink3)">${l.datumRetour ? new Date(l.datumRetour).toLocaleDateString('nl-BE') : (l.actie==='retour' ? new Date(l.op).toLocaleDateString('nl-BE') : '—')}</td>
+      <td style="padding:7px 10px"><button class="btn btn-secondary btn-sm" onclick="verwijderUitleenLog('${l.id}')">✕</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function verwijderUitleenLog(id) {
+  if (useFirebase) await db.collection('uitleenLog').doc(id).delete();
+  else window.localUitleenLog = (window.localUitleenLog||[]).filter(l => l.id !== id);
+  laadUitleenLog();
+  showToast('Log verwijderd');
+}
+
+async function wisBoekGeschiedenisModal() {
+  // Maak een lijst van boeken met geschiedenis
+  const bibMetGeschiedenis = bibBoeken.filter(b => b.uitleenGeschiedenis && b.uitleenGeschiedenis.length);
+  const favMetGeschiedenis = boeken.filter(b => b.uitleenGeschiedenis && b.uitleenGeschiedenis.length);
+  const alle = [...bibMetGeschiedenis, ...favMetGeschiedenis];
+  if (!alle.length) { showToast('Geen boeken met uitleen geschiedenis'); return; }
+
+  const boekLijst = alle.map((b,i) => (i+1) + '. ' + b.titel).join('\n');
+  const keuze = prompt('Welk boek wil je de geschiedenis van wissen?\n\n' + boekLijst + '\n\nTyp het nummer (of "alle" voor alles):');
+  if (!keuze) return;
+
+  if (keuze.toLowerCase() === 'alle') {
+    if (!confirm('Uitleen geschiedenis van ALLE boeken wissen?')) return;
+    for (const b of alle) {
+      if (useFirebase) {
+        const col = bibMetGeschiedenis.includes(b) ? 'bib' : 'boeken';
+        await db.collection(col).doc(b.id).update({uitleenGeschiedenis: []});
+      }
+    }
+    showToast('Alle boekgeschiedenissen gewist ✅');
+  } else {
+    const idx = parseInt(keuze) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= alle.length) { showToast('Ongeldig nummer'); return; }
+    const boek = alle[idx];
+    if (!confirm(`Geschiedenis van "${boek.titel}" wissen?`)) return;
+    const col = bibMetGeschiedenis.includes(boek) ? 'bib' : 'boeken';
+    if (useFirebase) await db.collection(col).doc(boek.id).update({uitleenGeschiedenis: []});
+    showToast(`Geschiedenis van "${boek.titel}" gewist ✅`);
+  }
+  laadUitleenLog();
+}
+
+async function verwijderAlleUitleenLogs() {
+  if (!confirm('Alle uitleen logs permanent verwijderen?')) return;
+  if (useFirebase) {
+    const snap = await db.collection('uitleenLog').get();
+    const batch = db.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  } else { window.localUitleenLog = []; }
+  laadUitleenLog();
+  showToast('Alle logs verwijderd');
+}
+
+async function logUitleen(boekId, boekTitel, naam, locatie, actie) {
+  const entry = {
+    boekId, boekTitel, naam, locatie, actie,
+    op: new Date().toISOString(),
+    datumUitleen: actie === 'uitleen' ? new Date().toISOString() : null,
+    datumRetour: actie === 'retour' ? new Date().toISOString() : null
+  };
+  if (useFirebase) {
+    await db.collection('uitleenLog').add(entry);
+  } else {
+    window.localUitleenLog = window.localUitleenLog || [];
+    window.localUitleenLog.push({id: 'log'+Date.now(), ...entry});
   }
 }
 
@@ -2370,13 +3394,19 @@ function toonBeheerTab(tab) {
     if (b.textContent.toLowerCase().includes(tab === 'lijsten' ? 'lijsten' : 'prullenbak')) b.classList.add('active');
   });
   if (tab === 'prullenbak') laadBeheerPrullenbak();
+  if (tab === 'uitleenlog') laadUitleenLog();
+  if (tab === 'uitstaand') laadUitstaandeUitleningen();
+  if (tab === 'statistieken') { toonStatTab('algemeen'); }
+  if (tab === 'gebruikers') renderGebruikersLijst();
 }
 
 function openBeheer() {
-  vraagWachtwoord('🔒 Beheer', 'Voer het wachtwoord in om het beheer te openen.', () => {
-    showPage('beheer');
-    toonBeheerTab('lijsten');
-  });
+  if (!huidigGebruiker || huidigGebruiker.rol !== 'beheerder') {
+    showToast('Alleen beheerders hebben toegang tot het beheer');
+    return;
+  }
+  showPage('beheer');
+  toonBeheerTab('lijsten');
 }
 
 async function laadBeheerPrullenbak() {
@@ -2403,7 +3433,7 @@ function renderBeheerPrullenbak(items) {
       </div>
       <div class="book-info">
         <div class="book-title">${b.titel}</div>
-        <div class="book-author">${b.auteur||''}</div>
+        <div class="book-author">${b.auteur||''}${b.illustrator?' · ill. '+b.illustrator:''}</div>
         <div style="font-size:11px;color:var(--ink3);margin:4px 0">
           ${b.verwijderdUit === 'bib' ? '🏫 Uit Schoolbib' : '⭐ Uit Favorieten'}<br>
           ${new Date(b.verwijderdOp).toLocaleDateString('nl-BE')}
@@ -2460,7 +3490,7 @@ function renderPrullenbak(items) {
       </div>
       <div class="book-info">
         <div class="book-title">${b.titel}</div>
-        <div class="book-author">${b.auteur||''}</div>
+        <div class="book-author">${b.auteur||''}${b.illustrator?' · ill. '+b.illustrator:''}</div>
         <div style="font-size:11px;color:var(--ink3);margin:4px 0">Verwijderd op ${new Date(b.verwijderdOp).toLocaleDateString('nl-BE')}</div>
         <div style="display:flex;gap:6px;margin-top:6px">
           <button class="btn btn-primary btn-sm" onclick="herstelBoek('${b.id}')">↩ Herstellen</button>
@@ -2523,6 +3553,168 @@ async function herstelBoek(id) {
 
 
 
+// ========== WACHTWOORD WIJZIGEN ==========
+function wijzigWachtwoord() {
+  const huidig = document.getElementById('ww-huidig').value;
+  const nieuw = document.getElementById('ww-nieuw').value;
+  const bevestig = document.getElementById('ww-bevestig').value;
+  const fout = document.getElementById('ww-wijzig-fout');
+
+  if (huidig !== huidigWachtwoord) {
+    fout.textContent = '❌ Huidig wachtwoord is onjuist'; fout.style.display = 'block'; return;
+  }
+  if (nieuw.length < 3) {
+    fout.textContent = '❌ Nieuw wachtwoord moet minstens 3 tekens zijn'; fout.style.display = 'block'; return;
+  }
+  if (nieuw !== bevestig) {
+    fout.textContent = '❌ Wachtwoorden komen niet overeen'; fout.style.display = 'block'; return;
+  }
+  huidigWachtwoord = nieuw;
+  // Sla op in Firebase of lokaal
+  if (useFirebase) {
+    db.collection('instellingen').doc('wachtwoord').set({wachtwoord: nieuw});
+  } else {
+    localStorage.setItem('beheer_wachtwoord', nieuw);
+  }
+  fout.style.display = 'none';
+  ['ww-huidig','ww-nieuw','ww-bevestig'].forEach(id => document.getElementById(id).value = '');
+  showToast('Wachtwoord gewijzigd! ✅');
+}
+
+// ========== BACK-UP ==========
+async function exportBackup() {
+  showToast('Back-up wordt voorbereid...');
+  let data = { datum: new Date().toISOString(), boeken: [], bib: [], lijsten: {} };
+  if (useFirebase) {
+    const [boekenSnap, bibSnap, lijstenSnap] = await Promise.all([
+      db.collection('boeken').get(),
+      db.collection('bib').get(),
+      db.collection('lijsten').get()
+    ]);
+    data.boeken = boekenSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    data.bib = bibSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    lijstenSnap.docs.forEach(d => { data.lijsten[d.id] = d.data().items; });
+  } else {
+    data.boeken = localBoeken;
+    data.bib = localBibBoeken;
+    data.lijsten = localLijsten;
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `backup-boekencatalogus-${new Date().toLocaleDateString('nl-BE').replace(/\//g,'-')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Back-up gedownload! ✅');
+}
+
+async function importBackup(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!confirm('⚠️ Dit overschrijft ALLE huidige data. Zeker weten?')) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.boeken || !data.bib || !data.lijsten) { showToast('Ongeldig back-up bestand'); return; }
+      if (useFirebase) {
+        showToast('Importeren... even geduld');
+        // Lijsten
+        for (const [key, items] of Object.entries(data.lijsten)) {
+          await db.collection('lijsten').doc(key).set({items});
+        }
+        // Boeken
+        const batch1 = db.batch();
+        data.boeken.forEach(b => { const {id, ...rest} = b; batch1.set(db.collection('boeken').doc(id), rest); });
+        await batch1.commit();
+        // Bib
+        const batch2 = db.batch();
+        data.bib.forEach(b => { const {id, ...rest} = b; batch2.set(db.collection('bib').doc(id), rest); });
+        await batch2.commit();
+      } else {
+        localBoeken = data.boeken;
+        localBibBoeken = data.bib;
+        localLijsten = data.lijsten;
+        boeken = JSON.parse(JSON.stringify(localBoeken));
+        bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+        lijsten = JSON.parse(JSON.stringify(localLijsten));
+        filterBoeken(); filterBib(); renderBeheer(); updateFilterOpties(); updateBibFilterOpties();
+      }
+      showToast('Back-up geïmporteerd! ✅', 4000);
+    } catch(err) { showToast('Fout: ' + err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ========== QR CODE ==========
+function toonQRCode(id, type) {
+  const boek = type === 'bib' ? bibBoeken.find(b => b.id === id) : boeken.find(b => b.id === id);
+  if (!boek) return;
+  document.getElementById('qr-titel').textContent = boek.titel;
+  const container = document.getElementById('qr-container');
+  // Maak QR URL — link naar de huidige pagina met boek ID als parameter
+  const url = `${window.location.href.split('?')[0]}?boek=${id}&type=${type}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+  container.innerHTML = `<img src="${qrUrl}" alt="QR code" style="width:200px;height:200px;border-radius:var(--radius)">`;
+  document.getElementById('modal-qr').classList.add('open');
+}
+
+function printQR() {
+  const img = document.querySelector('#qr-container img');
+  const titel = document.getElementById('qr-titel').textContent;
+  if (!img) return;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>QR - ${titel}</title>
+  <style>body{font-family:sans-serif;text-align:center;padding:2rem}h2{margin-bottom:1rem}img{width:200px;height:200px}p{color:#666;font-size:13px;margin-top:0.5rem}</style>
+  </head><body><h2>${titel}</h2><img src="${img.src}"><p>Scan om dit boek te openen in de app</p></body></html>`);
+  win.document.close();
+  win.print();
+}
+
+function toggleGeschiedenis(id) {
+  const el = document.getElementById(id);
+  const arrow = document.getElementById(id + '-arrow');
+  if (!el) return;
+  const isOpen = el.style.maxHeight !== '0px' && el.style.maxHeight !== '';
+  el.style.maxHeight = isOpen ? '0' : el.scrollHeight + 'px';
+  if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+
+function checkEigenaarAnders() {
+  const sel = document.getElementById('bib-f-eigenaar');
+  const wrap = document.getElementById('eigenaar-anders-wrap');
+  wrap.style.display = sel.value === 'Andere' ? 'block' : 'none';
+  if (sel.value !== 'Andere') {
+    document.getElementById('bib-f-eigenaar-naam').value = '';
+    document.getElementById('eigenaar-naam-fout').style.display = 'none';
+  }
+}
+
+function checkEigenaarNaam() {
+  const naam = document.getElementById('bib-f-eigenaar-naam').value.trim();
+  const fout = document.getElementById('eigenaar-naam-fout');
+  if (!naam) { fout.style.display = 'none'; return true; }
+  const bestaatAl = (lijsten.eigenaarschap||[]).includes(naam);
+  if (bestaatAl) {
+    fout.textContent = `"${naam}" bestaat al in de lijst. Kies het uit de dropdown.`;
+    fout.style.display = 'block';
+    return false;
+  }
+  fout.style.display = 'none';
+  return true;
+}
+
+function getEigenaarWaarde() {
+  const sel = document.getElementById('bib-f-eigenaar');
+  if (sel.value === 'Andere') {
+    const naam = document.getElementById('bib-f-eigenaar-naam').value.trim();
+    return naam || 'Andere';
+  }
+  return sel.value;
+}
+
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
@@ -2536,13 +3728,17 @@ function showToast(msg, duur=2500) {
 
 // Sluit modal bij klik buiten
 document.querySelectorAll('.modal-bg').forEach(bg => {
-  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+  bg.addEventListener('click', e => {
+    if (e.target === bg && bg.id !== 'modal-login') bg.classList.remove('open');
+  });
 });
 
 // Escape toets sluit open modals
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.modal-bg.open').forEach(m => {
+      if (m.id !== 'modal-login') m.classList.remove('open');
+    });
   }
 });
 
