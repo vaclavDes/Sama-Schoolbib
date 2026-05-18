@@ -361,7 +361,6 @@
     <div style="display:flex;gap:8px;flex-shrink:0;margin-left:1rem">
       <button class="btn btn-secondary btn-sm" onclick="voegToeAanCatalogus()">⭐ Naar favorieten</button>
       <button class="btn btn-secondary btn-sm" onclick="bewerkBibBoek()">✏️ Bewerken</button>
-      <button class="btn btn-secondary btn-sm" onclick="toonQRCode(huidigBibBoekId,'bib')">QR</button>
       <button class="btn btn-danger btn-sm" onclick="verwijderBibBoek()">🗑 Verwijderen</button>
       <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-bib-detail')">✕</button>
     </div>
@@ -761,7 +760,6 @@
     <div style="display:flex;gap:8px;flex-shrink:0;margin-left:1rem;flex-wrap:wrap;justify-content:flex-end">
       <button class="btn btn-primary btn-sm" onclick="voegToeAanBib()">🏫 Naar Bib</button>
       <button class="btn btn-secondary btn-sm" id="btn-bewerk" onclick="bewerkHuidigBoek()">✏️ Bewerken</button>
-      <button class="btn btn-secondary btn-sm" onclick="toonQRCode(huidigBoekId,'fav')">QR</button>
       <button class="btn btn-danger btn-sm" id="btn-verwijder" onclick="verwijderHuidigBoek()">🗑 Verwijderen</button>
       <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-detail')">✕</button>
     </div>
@@ -912,19 +910,6 @@
     <button class="btn btn-secondary" onclick="closeModal('modal-samenvoegen')">Annuleren</button>
     <button class="btn btn-primary" onclick="bevestigSamenvoegen()">⇒ Samenvoegen</button>
   </div>
-</div>
-</div>
-
-<!-- QR CODE MODAL -->
-<div class="modal-bg" id="modal-qr">
-<div class="modal" style="max-width:340px;text-align:center">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-    <h2 style="margin:0;font-size:1.1rem" id="qr-titel"></h2>
-    <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-qr')">✕</button>
-  </div>
-  <div id="qr-container" style="display:flex;justify-content:center;margin:1rem 0"></div>
-  <p style="font-size:12px;color:var(--ink3);margin-bottom:1rem">Scan om dit boek direct te openen in de app.</p>
-  <button class="btn btn-secondary btn-sm" onclick="printQR()">🖨️ Afdrukken</button>
 </div>
 </div>
 
@@ -3848,31 +3833,6 @@ async function importBackup(e) {
   };
   reader.readAsText(file);
   e.target.value = '';
-}
-
-// ========== QR CODE ==========
-function toonQRCode(id, type) {
-  const boek = type === 'bib' ? bibBoeken.find(b => b.id === id) : boeken.find(b => b.id === id);
-  if (!boek) return;
-  document.getElementById('qr-titel').textContent = boek.titel;
-  const container = document.getElementById('qr-container');
-  // Maak QR URL — link naar de huidige pagina met boek ID als parameter
-  const url = `${window.location.href.split('?')[0]}?boek=${id}&type=${type}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-  container.innerHTML = `<img src="${qrUrl}" alt="QR code" style="width:200px;height:200px;border-radius:var(--radius)">`;
-  document.getElementById('modal-qr').classList.add('open');
-}
-
-function printQR() {
-  const img = document.querySelector('#qr-container img');
-  const titel = document.getElementById('qr-titel').textContent;
-  if (!img) return;
-  const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>QR - ${titel}</title>
-  <style>body{font-family:sans-serif;text-align:center;padding:2rem}h2{margin-bottom:1rem}img{width:200px;height:200px}p{color:#666;font-size:13px;margin-top:0.5rem}</style>
-  </head><body><h2>${titel}</h2><img src="${img.src}"><p>Scan om dit boek te openen in de app</p></body></html>`);
-  win.document.close();
-  win.print();
 }
 
 function toggleGeschiedenis(id) {
