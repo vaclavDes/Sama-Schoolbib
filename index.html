@@ -427,8 +427,11 @@
     <h2 style="margin:0">📤 Boek uitlenen</h2>
     <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-uitleen')">✕</button>
   </div>
-  <p style="font-size:14px;color:var(--ink2);margin-bottom:1rem">Wie leent <strong id="uitleen-boek-titel"></strong>?</p>
-  <div style="margin-bottom:1rem">
+  <p id="uitleen-boek-info" style="font-size:14px;color:var(--ink2);margin-bottom:1rem">Boek: <strong id="uitleen-boek-titel"></strong></p>
+  <div id="uitleen-ingelogd-info" style="display:none;background:var(--paper2);border-radius:var(--radius);padding:8px 12px;margin-bottom:1rem;font-size:14px;color:var(--ink2)">
+    📤 Uitlenen op naam van <strong id="uitleen-ingelogd-naam"></strong>
+  </div>
+  <div id="uitleen-naam-wrap" style="margin-bottom:1rem">
     <label>Naam lener</label>
     <input type="text" id="uitleen-naam" placeholder="Naam van de lener...">
   </div>
@@ -629,13 +632,7 @@
         <option value="gebruiker">✏️ Gebruiker</option>
         <option value="gast">👁 Gast</option>
       </select>
-      <select id="gebruiker-sorteer" onchange="renderGebruikersLijst()" style="font-size:13px;padding:6px 10px;border:1px solid var(--paper3);border-radius:var(--radius)">
-        <option value="naam">Naam A→Z</option>
-        <option value="naam-z">Naam Z→A</option>
-        <option value="rol">Rol</option>
-        <option value="datum">Datum aangemaakt</option>
-        <option value="aangemeld">Laatste aanmelding</option>
-      </select>
+<select id="gebruiker-sorteer" style="display:none"></select>
       <span id="gebruiker-count" style="font-size:12px;color:var(--ink3);margin-left:auto"></span>
     </div>
 
@@ -1268,20 +1265,64 @@ function toonBibDetail(id) {
 }
 
 // ========== UITLEEN ==========
-function openUitleen(id) {
+async function openUitleen(id) {
   huidigUitleenId = id;
   const b = bibBoeken.find(x => x.id === id);
   if (!b) return;
   const uitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan,vanuit:b.uitgeleendVanuit,op:b.uitgeleendOp}] : []);
   const beschikbaar = (b.aantal||1) - uitleningen.length;
   if (beschikbaar <= 0) { showToast('Alle exemplaren zijn uitgeleend'); return; }
-  document.getElementById('uitleen-boek-titel').textContent = b.titel + (b.aantal > 1 ? ` (${beschikbaar} beschikbaar)` : '');
-  document.getElementById('uitleen-naam').value = '';
-  const sel = document.getElementById('uitleen-locatie');
+
+  const isGast = !huidigGebruiker || huidigGebruiker.rol === 'gast';
+  const naam = isGast ? null : huidigGebruiker.naam;
   const boekLocaties = b?.locaties?.length ? b.locaties : (lijsten.locaties||[]);
+  const locatie = boekLocaties.length === 1 ? boekLocaties[0] : null;
+
+  // Als naam bekend EN maar 1 locatie → direct uitlenen zonder popup
+  if (naam && locatie) {
+    closeModal('modal-bib-detail');
+    await directUitlenen(id, naam, locatie);
+    return;
+  }
+
+  // Als naam bekend maar meerdere locaties → toon modal zonder naamveld
+  document.getElementById('uitleen-boek-titel').textContent = b.titel + (b.aantal > 1 ? ` (${beschikbaar} beschikbaar)` : '');
+  const naamWrap = document.getElementById('uitleen-naam-wrap');
+  const ingelogdInfo = document.getElementById('uitleen-ingelogd-info');
+  if (!isGast && naam) {
+    naamWrap.style.display = 'none';
+    ingelogdInfo.style.display = 'block';
+    document.getElementById('uitleen-ingelogd-naam').textContent = naam;
+    document.getElementById('uitleen-naam').value = naam;
+  } else {
+    naamWrap.style.display = 'block';
+    ingelogdInfo.style.display = 'none';
+    document.getElementById('uitleen-naam').value = '';
+  }
+  const sel = document.getElementById('uitleen-locatie');
   sel.innerHTML = '<option value="">-- kies locatie --</option>' + boekLocaties.map(l=>`<option>${l}</option>`).join('');
-  if (boekLocaties.length === 1) sel.value = boekLocaties[0];
+  closeModal('modal-bib-detail');
   document.getElementById('modal-uitleen').classList.add('open');
+}
+
+async function directUitlenen(id, naam, locatie) {
+  const b = bibBoeken.find(x => x.id === id);
+  if (!b) return;
+  const oudeUitleningen = b.uitleningen || (b.uitgeleendAan ? [{naam:b.uitgeleendAan,vanuit:b.uitgeleendVanuit,op:b.uitgeleendOp}] : []);
+  const nieuweUitleningen = [...oudeUitleningen, {naam, vanuit: locatie, op: new Date().toISOString()}];
+  const oudeGeschiedenis = b.uitleenGeschiedenis || [];
+  const nieuweGeschiedenis = [...oudeGeschiedenis, {naam, vanuit: locatie, op: new Date().toISOString()}];
+  const data = { uitleningen: nieuweUitleningen, uitgeleendAan: naam, uitgeleendVanuit: locatie, uitgeleendOp: new Date().toISOString(), uitleenGeschiedenis: nieuweGeschiedenis };
+  if (useFirebase) {
+    await logUitleen(id, b.titel, naam, locatie, 'uitleen');
+    await db.collection('bib').doc(id).update(data);
+  } else {
+    const i = localBibBoeken.findIndex(x => x.id === id);
+    if (i >= 0) Object.assign(localBibBoeken[i], data);
+    bibBoeken = JSON.parse(JSON.stringify(localBibBoeken));
+    filterBib();
+  }
+  showToast(`"${b.titel}" uitgeleend aan ${naam} ✅`);
 }
 
 async function bevestigUitleen() {
@@ -1445,8 +1486,15 @@ async function bevestigBulkRetour() {
 async function bulkUitlenen() {
   const geselecteerd = Array.from(document.querySelectorAll('.bib-selecteer:checked')).map(c => c.dataset.id);
   if (!geselecteerd.length) { showToast('Geen boeken geselecteerd'); return; }
-  const naam = prompt('Naam van de lener:');
-  if (!naam || !naam.trim()) return;
+  // Gebruik ingelogde naam, tenzij gast
+  let naam;
+  const isGastBulk = !huidigGebruiker || huidigGebruiker.rol === 'gast';
+  if (!isGastBulk) {
+    naam = huidigGebruiker.naam;
+  } else {
+    naam = prompt('Naam van de lener:');
+    if (!naam || !naam.trim()) return;
+  }
   let gelukt = 0, overgeslagen = [];
   for (const id of geselecteerd) {
     const b = bibBoeken.find(x => x.id === id);
@@ -2120,11 +2168,6 @@ function sorteerGebruikers(kolom) {
     if (el) el.textContent = k === kolom ? (gebruikersSorteerRichting === 'asc' ? '↑' : '↓') : '↕';
   });
   // Map kolom naar sorteer select waarde
-  const map = {naam:'naam', rol:'rol', status:'naam', aangemeld:'aangemeld'};
-  const sel = document.getElementById('gebruiker-sorteer');
-  if (sel && map[kolom]) {
-    sel.value = kolom === 'naam' && gebruikersSorteerRichting === 'desc' ? 'naam-z' : map[kolom];
-  }
   renderGebruikersLijst();
 }
 
@@ -2134,7 +2177,7 @@ function renderGebruikersLijst() {
 
   const zoek = (document.getElementById('gebruiker-zoek')?.value||'').toLowerCase();
   const filterRol = document.getElementById('gebruiker-filter-rol')?.value||'';
-  const sorteer = document.getElementById('gebruiker-sorteer')?.value||'naam';
+
 
   let lijst = gebruikers.filter(g => {
     if (zoek && !g.naam.toLowerCase().includes(zoek)) return false;
